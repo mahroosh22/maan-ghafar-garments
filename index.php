@@ -35,6 +35,34 @@ require_once "config/database.php";
         <a href="#" class="hero-btn">Shop Now</a>
     </div>
 </section>
+<section class="products">
+    <h2>Our Products</h2>
+
+    <div class="product-container">
+
+        <div class="product-card">
+            <div class="product-image">Product Image</div>
+            <h3>Men's Shirt</h3>
+            <p>Premium quality shirt</p>
+            <span>Rs. 3,500</span>
+        </div>
+
+        <div class="product-card">
+            <div class="product-image">Product Image</div>
+            <h3>Men's Shalwar Kameez</h3>
+            <p>Comfortable and stylish</p>
+            <span>Rs. 4,500</span>
+        </div>
+
+        <div class="product-card">
+            <div class="product-image">Product Image</div>
+            <h3>Women's Collection</h3>
+            <p>Elegant fashion wear</p>
+            <span>Rs. 5,000</span>
+        </div>
+
+    </div>
+</section>
 
 </body>
 </html>

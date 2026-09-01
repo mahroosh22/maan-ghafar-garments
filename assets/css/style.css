@@ -68,3 +68,53 @@ h1 {
 .hero-btn:hover {
     background: #d4af37;
 }
+.products {
+    padding: 70px 50px;
+    text-align: center;
+    background: white;
+}
+
+.products h2 {
+    font-size: 36px;
+    margin-bottom: 40px;
+}
+
+.product-container {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.product-card {
+    width: 280px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.product-image {
+    height: 220px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #eee;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.product-card h3 {
+    margin: 10px 0;
+}
+
+.product-card p {
+    color: #666;
+}
+
+.product-card span {
+    display: block;
+    margin-top: 15px;
+    font-size: 20px;
+    font-weight: bold;
+}
