@@ -88,5 +88,8 @@ require_once "config/database.php";
         <p><strong>Address:</strong> Pakistan</p>
     </div>
 </section>
+<footer class="footer">
+    <p>&copy; 2026 Maan Ghafar Garments. All Rights Reserved.</p>
+</footer>
 </body>
 </html>
