@@ -166,3 +166,46 @@ h1 {
     margin: 0;
     font-size: 15px;
 }
+@media (max-width: 768px) {
+    .header {
+        padding: 20px;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .navbar {
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .hero {
+        min-height: 400px;
+        padding: 20px;
+    }
+
+    .hero-content h1 {
+        font-size: 34px;
+    }
+
+    .hero-content p {
+        font-size: 18px;
+    }
+
+    .products,
+    .about,
+    .contact {
+        padding: 50px 20px;
+    }
+
+    .products h2,
+    .about h2,
+    .contact h2 {
+        font-size: 30px;
+    }
+
+    .product-card {
+        width: 100%;
+        max-width: 320px;
+    }
+}
