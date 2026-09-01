@@ -79,5 +79,14 @@ require_once "config/database.php";
         </p>
     </div>
 </section>
+<section class="contact">
+    <h2>Contact Us</h2>
+
+    <div class="contact-info">
+        <p><strong>Phone:</strong> 0300-0000000</p>
+        <p><strong>Email:</strong> info@maanghafargarments.com</p>
+        <p><strong>Address:</strong> Pakistan</p>
+    </div>
+</section>
 </body>
 </html>
