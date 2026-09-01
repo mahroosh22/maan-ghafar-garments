@@ -28,6 +28,13 @@ require_once "config/database.php";
         <a href="#">Contact</a>
     </nav>
 </header>
+<section class="hero">
+    <div class="hero-content">
+        <h1>Welcome to Maan Ghafar Garments</h1>
+        <p>Quality Garments for Every Style</p>
+        <a href="#" class="hero-btn">Shop Now</a>
+    </div>
+</section>
 
 </body>
 </html>
