@@ -16,7 +16,18 @@ require_once "config/database.php";
 
 <body>
 
-    <h1>Maan Ghafar Garments</h1>
+    <header class="header">
+    <div class="logo">
+        Maan Ghafar Garments
+    </div>
+
+    <nav class="navbar">
+        <a href="#">Home</a>
+        <a href="#">Products</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+    </nav>
+</header>
 
 </body>
 </html>
