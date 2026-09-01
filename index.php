@@ -63,6 +63,21 @@ require_once "config/database.php";
 
     </div>
 </section>
+<section class="about">
+    <div class="about-content">
+        <h2>About Maan Ghafar Garments</h2>
 
+        <p>
+            Maan Ghafar Garments is committed to providing
+            high-quality garments with modern style, comfort,
+            and excellent customer satisfaction.
+        </p>
+
+        <p>
+            We bring quality fashion and reliable service
+            together under one trusted name.
+        </p>
+    </div>
+</section>
 </body>
 </html>
