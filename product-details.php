@@ -1,5 +1,4 @@
 <?php
-
 require_once "config/database.php";
 
 $product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -27,6 +26,7 @@ if (!$product) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($product['product_name']); ?> - Maan Ghafar Garments</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/product-details.css">
 </head>
 
 <body>
