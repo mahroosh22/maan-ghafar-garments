@@ -131,10 +131,12 @@ body {
 echo "<div class='success-icon'>✓</div>";
     echo "<h1>🎉 Order Placed Successfully!</h1>";
 echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
-echo "<p>Your Order ID is: <strong>#" . $order_id . "</strong></p>";
+echo "<div class='order-info'>";
+echo "<p><strong>Order ID:</strong> #" . $order_id . "</p>";
+echo "<p><strong>Payment Method:</strong> " . htmlspecialchars($payment_method) . "</p>";
 echo "<p>Total Amount: <strong>Rs. " . number_format($total_amount) . "</strong></p>";
-echo "<p>Payment Method: <strong>" . htmlspecialchars($payment_method) . "</strong></p>";
 echo "<p>Your order has been received successfully.</p>";
+echo "</div>";
 echo '<a href="index.php">Continue Shopping</a>';
 echo '</div>
 </body>
