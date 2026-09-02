@@ -56,7 +56,36 @@ $stmt->bind_param(
 
 if ($stmt->execute()) {
     $order_id = $conn->insert_id;
+foreach ($_SESSION['cart'] as $product_id => $quantity) {
 
+    $stmt = $conn->prepare("SELECT price FROM products WHERE product_id = ?");
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+
+    $result = $stmt->get_result();
+    $product = $result->fetch_assoc();
+
+    if ($product) {
+
+        $price = $product['price'];
+
+        $item_stmt = $conn->prepare("
+            INSERT INTO order_items
+            (order_id, product_id, quantity, price)
+            VALUES (?, ?, ?, ?)
+        ");
+
+        $item_stmt->bind_param(
+            "iiid",
+            $order_id,
+            $product_id,
+            $quantity,
+            $price
+        );
+
+        $item_stmt->execute();
+    }
+}
     echo "<h1>Order Placed Successfully!</h1>";
     echo "<p>Order ID: " . $order_id . "</p>";
     echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
