@@ -94,6 +94,7 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
 echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
 echo "<p>Your Order ID is: <strong>#" . $order_id . "</strong></p>";
 echo "<p>Total Amount: <strong>Rs. " . number_format($total_amount) . "</strong></p>";
+echo "<p>Payment Method: <strong>" . htmlspecialchars($payment_method) . "</strong></p>";
 echo "<p>Your order has been received successfully.</p>";
 echo '<a href="index.php">Continue Shopping</a>';
     unset($_SESSION['cart']);
