@@ -294,3 +294,17 @@ h1 {
 .all-products-btn:hover {
     background: #d4af37;
 }
+.view-details-btn {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #111;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: 0.3s;
+}
+
+.view-details-btn:hover {
+    background: #d4af37;
+}

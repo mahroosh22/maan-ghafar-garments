@@ -89,9 +89,12 @@ while ($product = $result->fetch_assoc()) {
                 </p>
 
                 <span>
-                    Rs. <?php echo number_format($product['price']); ?>
-                </span>
+    Rs. <?php echo number_format($product['price']); ?>
+</span>
 
+<a href="product-details.php?id=<?php echo $product['product_id']; ?>" class="view-details-btn">
+    View Details
+</a>
             </div>
 
         <?php
