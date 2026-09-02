@@ -40,19 +40,19 @@ require_once "config/database.php";
 
     <div class="category-container">
 
-        <div class="category-card">
+        <a href="?category=1" class="category-card">
     <img src="assets/image/suite 1.jpg" alt="Lawn Dresses">
     <h3>Lawn Dresses</h3>
-</div>
-        <div class="category-card">
+</a>
+        <a href="?category=2" class="category-card">
     <img src="assets/image/suite 02.jpg" alt="Western Dresses">
     <h3>Western Dresses</h3>
-</div>
+</a>
 
-        <div class="category-card">
+        <a href="?category=3" class="category-card">
     <img src="assets/image/suite 03.jpg" alt="Maxi Dresses">
     <h3>Maxi Dresses</h3>
-</div>
+</a>
 
     </div>
 </section>
@@ -62,10 +62,16 @@ require_once "config/database.php";
     <div class="product-container">
 
         <?php
-        $result = $conn->query("SELECT * FROM products");
+$category = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 
-        while ($product = $result->fetch_assoc()) {
-        ?>
+if ($category > 0) {
+    $result = $conn->query("SELECT * FROM products WHERE category_id = $category");
+} else {
+    $result = $conn->query("SELECT * FROM products");
+}
+
+while ($product = $result->fetch_assoc()) {
+?>
 
             <div class="product-card">
 
