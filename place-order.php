@@ -90,6 +90,45 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
         $item_stmt->execute();
     }
 }
+echo '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Successful - Maan Ghafar Garments</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
+}
+.order-success {
+    max-width: 600px;
+    margin: 60px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+    .success-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 20px;
+    background: #27ae60;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="order-success">';
+echo "<div class='success-icon'>✓</div>";
     echo "<h1>🎉 Order Placed Successfully!</h1>";
 echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
 echo "<p>Your Order ID is: <strong>#" . $order_id . "</strong></p>";
@@ -97,6 +136,9 @@ echo "<p>Total Amount: <strong>Rs. " . number_format($total_amount) . "</strong>
 echo "<p>Payment Method: <strong>" . htmlspecialchars($payment_method) . "</strong></p>";
 echo "<p>Your order has been received successfully.</p>";
 echo '<a href="index.php">Continue Shopping</a>';
+echo '</div>
+</body>
+</html>';
     unset($_SESSION['cart']);
 } else {
     echo "Order could not be placed.";
