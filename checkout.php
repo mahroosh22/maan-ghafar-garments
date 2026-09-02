@@ -20,6 +20,10 @@ body {
     background: #f5f5f5;
     padding: 30px;
 }
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
 
 form {
     max-width: 500px;
@@ -44,19 +48,43 @@ textarea {
     border-radius: 5px;
     box-sizing: border-box;
 }
+select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background: white;
+}
 
 button {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: #222;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: 0.3s;
 }
 
 button:hover {
     opacity: 0.85;
+    transform: translateY(-1px);
+}
+@media (max-width: 600px) {
+    body {
+        padding: 15px;
+    }
+
+    form {
+        padding: 20px;
+        margin: 20px auto;
+    }
 }
 </style>
 </head>
@@ -65,7 +93,6 @@ button:hover {
 
 <h1>Checkout</h1>
 
-<p>Checkout page ready.</p>
 <form action="place-order.php" method="POST">
 
     <label>Full Name</label><br>
@@ -76,6 +103,7 @@ button:hover {
 
     <label>Address</label><br>
     <textarea name="address" rows="4" required></textarea><br><br>
+    
     <label>Payment Method</label><br>
 
 <select name="payment_method" required>
