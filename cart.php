@@ -15,13 +15,33 @@ require_once "config/database.php";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping Cart - Maan Ghafar Garments</title>
     <style>
-.cart-item {
-    margin-bottom: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+        body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
 }
 
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.cart-item {
+    margin: 20px auto;
+    padding: 20px;
+    max-width: 700px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+.cart-item img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+    margin-bottom: 15px;
+}
 .quantity-controls {
     display: inline-flex;
     align-items: center;
@@ -30,14 +50,15 @@ require_once "config/database.php";
 
 .quantity-controls a {
     display: inline-flex;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     align-items: center;
     justify-content: center;
     text-decoration: none;
     background: #222;
     color: white;
-    border-radius: 5px;
+    border-radius: 6px;
+    font-size: 18px;
     font-weight: bold;
 }
 
@@ -56,6 +77,47 @@ require_once "config/database.php";
 
 .remove-btn:hover {
     opacity: 0.8;
+}
+h2 {
+    max-width: 700px;
+    margin: 25px auto;
+    padding: 15px 20px;
+    background: white;
+    border-radius: 10px;
+    text-align: right;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+.checkout-btn {
+    display: block;
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 14px;
+    background: #222;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.checkout-btn:hover {
+    opacity: 0.85;
+}
+.continue-btn {
+    display: block;
+    max-width: 700px;
+    margin: 10px auto;
+    padding: 12px;
+    background: #ddd;
+    color: #222;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.continue-btn:hover {
+    background: #ccc;
 }
 </style>
 </head>
@@ -122,15 +184,12 @@ require_once "config/database.php";
 <h2>
     Grand Total: Rs. <?php echo number_format($grand_total); ?>
 </h2>
-<a href="checkout.php">
+<a href="checkout.php" class="checkout-btn">
     Proceed to Checkout
-</a>
-<a href="remove-from-cart.php?id=<?php echo $product_id; ?>">
-    Remove
 </a>
 <?php endif; ?>
 
-<a href="index.php">← Continue Shopping</a>
+<a href="index.php" class="continue-btn">← Continue Shopping</a>
 
 </body>
 </html>
