@@ -28,13 +28,33 @@ require_once "config/database.php";
 
     <?php foreach ($_SESSION['cart'] as $product_id => $quantity): ?>
 
-        <p>
-            Product ID: <?php echo $product_id; ?>
-            | Quantity: <?php echo $quantity; ?>
-        </p>
+    <?php
+    $stmt = $conn->prepare("SELECT * FROM products WHERE product_id = ?");
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
 
-    <?php endforeach; ?>
+    $result = $stmt->get_result();
+    $product = $result->fetch_assoc();
+    ?>
 
+    <?php if ($product): ?>
+
+        <div class="cart-item">
+
+    <img src="assets/image/<?php echo htmlspecialchars($product['image']); ?>"
+         alt="<?php echo htmlspecialchars($product['product_name']); ?>"
+         width="100">
+
+    <p>
+        Product: <?php echo htmlspecialchars($product['product_name']); ?>
+        | Price: Rs. <?php echo number_format($product['price']); ?>
+        | Quantity: <?php echo $quantity; ?>
+    </p>
+
+</div>
+    <?php endif; ?>
+
+<?php endforeach; ?>
 <?php endif; ?>
 
 <a href="index.php">← Continue Shopping</a>
