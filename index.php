@@ -41,16 +41,18 @@ require_once "config/database.php";
     <div class="category-container">
 
         <div class="category-card">
-            <h3>Lawn Dresses</h3>
-        </div>
+    <img src="assets/image/suite 1.jpg" alt="Lawn Dresses">
+    <h3>Lawn Dresses</h3>
+</div>
+        <div class="category-card">
+    <img src="assets/image/suite 02.jpg" alt="Western Dresses">
+    <h3>Western Dresses</h3>
+</div>
 
         <div class="category-card">
-            <h3>Western Dresses</h3>
-        </div>
-
-        <div class="category-card">
-            <h3>Maxi Dresses</h3>
-        </div>
+    <img src="assets/image/suite 03.jpg" alt="Maxi Dresses">
+    <h3>Maxi Dresses</h3>
+</div>
 
     </div>
 </section>
