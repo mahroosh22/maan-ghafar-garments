@@ -124,6 +124,32 @@ body {
     font-size: 40px;
     font-weight: bold;
 }
+    .order-info {
+    margin: 25px 0;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.order-info p {
+    margin: 10px 0;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+    .continue-btn {
+    display: inline-block;
+    padding: 12px 25px;
+    background: #222;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.continue-btn:hover {
+    opacity: 0.85;
+}
 </style>
 </head>
 <body>
@@ -137,7 +163,7 @@ echo "<p><strong>Payment Method:</strong> " . htmlspecialchars($payment_method) 
 echo "<p>Total Amount: <strong>Rs. " . number_format($total_amount) . "</strong></p>";
 echo "<p>Your order has been received successfully.</p>";
 echo "</div>";
-echo '<a href="index.php">Continue Shopping</a>';
+echo '<a href="index.php" class="continue-btn">Continue Shopping</a>';
 echo '</div>
 </body>
 </html>';
