@@ -35,6 +35,25 @@ require_once "config/database.php";
         <a href="#" class="hero-btn">Shop Now</a>
     </div>
 </section>
+<section class="categories">
+    <h2>Shop By Category</h2>
+
+    <div class="category-container">
+
+        <div class="category-card">
+            <h3>Lawn Dresses</h3>
+        </div>
+
+        <div class="category-card">
+            <h3>Western Dresses</h3>
+        </div>
+
+        <div class="category-card">
+            <h3>Maxi Dresses</h3>
+        </div>
+
+    </div>
+</section>
 <section class="products">
     <h2>Our Products</h2>
 
