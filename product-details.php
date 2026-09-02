@@ -56,7 +56,9 @@ if (!$product) {
             <p>
                 Stock: <?php echo htmlspecialchars($product['stock_quantity']); ?>
             </p>
-
+<button type="button" class="add-to-cart-btn">
+    Add to Cart
+</button>
             <a href="index.php">← Back to Products</a>
 
         </div>

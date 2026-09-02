@@ -47,3 +47,17 @@
         font-size: 28px;
     }
 }
+.add-to-cart-btn {
+    background: #111;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 15px 0;
+}
+
+.add-to-cart-btn:hover {
+    background: #333;
+}
