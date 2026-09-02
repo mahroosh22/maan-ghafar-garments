@@ -40,29 +40,39 @@ require_once "config/database.php";
 
     <div class="product-container">
 
-        <div class="product-card">
-            <div class="product-image">Product Image</div>
-            <h3>Men's Shirt</h3>
-            <p>Premium quality shirt</p>
-            <span>Rs. 3,500</span>
-        </div>
+        <?php
+        $result = $conn->query("SELECT * FROM products");
 
-        <div class="product-card">
-            <div class="product-image">Product Image</div>
-            <h3>Men's Shalwar Kameez</h3>
-            <p>Comfortable and stylish</p>
-            <span>Rs. 4,500</span>
-        </div>
+        while ($product = $result->fetch_assoc()) {
+        ?>
 
-        <div class="product-card">
-            <div class="product-image">Product Image</div>
-            <h3>Women's Collection</h3>
-            <p>Elegant fashion wear</p>
-            <span>Rs. 5,000</span>
-        </div>
+            <div class="product-card">
+
+                <div class="product-image">
+                    <?php echo htmlspecialchars($product['product_name']); ?>
+                </div>
+
+                <h3>
+                    <?php echo htmlspecialchars($product['product_name']); ?>
+                </h3>
+
+                <p>
+                    <?php echo htmlspecialchars($product['description']); ?>
+                </p>
+
+                <span>
+                    Rs. <?php echo number_format($product['price']); ?>
+                </span>
+
+            </div>
+
+        <?php
+        }
+        ?>
 
     </div>
 </section>
+           
 <section class="about">
     <div class="about-content">
         <h2>About Maan Ghafar Garments</h2>
