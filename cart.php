@@ -25,8 +25,12 @@ require_once "config/database.php";
     <p>Your cart is empty.</p>
 
 <?php else: ?>
+    
+
+    <?php $grand_total = 0; ?>
 
     <?php foreach ($_SESSION['cart'] as $product_id => $quantity): ?>
+
 
     <?php
     $stmt = $conn->prepare("SELECT * FROM products WHERE product_id = ?");
@@ -35,6 +39,7 @@ require_once "config/database.php";
 
     $result = $stmt->get_result();
     $product = $result->fetch_assoc();
+    $grand_total += $product['price'] * $quantity;
     ?>
 
     <?php if ($product): ?>
@@ -46,15 +51,19 @@ require_once "config/database.php";
          width="100">
 
     <p>
-        Product: <?php echo htmlspecialchars($product['product_name']); ?>
-        | Price: Rs. <?php echo number_format($product['price']); ?>
-        | Quantity: <?php echo $quantity; ?>
-    </p>
+    Product: <?php echo htmlspecialchars($product['product_name']); ?>
+    | Price: Rs. <?php echo number_format($product['price']); ?>
+    | Quantity: <?php echo $quantity; ?>
+    | Total: Rs. <?php echo number_format($product['price'] * $quantity); ?>
+</p>
 
 </div>
     <?php endif; ?>
 
 <?php endforeach; ?>
+<h2>
+    Grand Total: Rs. <?php echo number_format($grand_total); ?>
+</h2>
 <?php endif; ?>
 
 <a href="index.php">← Continue Shopping</a>
