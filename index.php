@@ -38,8 +38,9 @@ require_once "config/database.php";
 <section class="categories">
     <h2>Shop By Category</h2>
 
-    <div class="category-container">
+    <a href="index.php" class="all-products-btn">All Products</a>
 
+    <div class="category-container">
         <a href="?category=1" class="category-card">
     <img src="assets/image/suite 1.jpg" alt="Lawn Dresses">
     <h3>Lawn Dresses</h3>
@@ -72,7 +73,7 @@ if ($category > 0) {
 
 while ($product = $result->fetch_assoc()) {
 ?>
-
+<
             <div class="product-card">
 
                 <div class="product-image">

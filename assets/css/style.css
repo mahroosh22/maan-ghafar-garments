@@ -279,3 +279,18 @@ h1 {
     object-fit: cover;
     border-radius: 12px;
 }
+.all-products-btn {
+    display: inline-block;
+    padding: 12px 28px;
+    margin-bottom: 30px;
+    background: #111;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.all-products-btn:hover {
+    background: #d4af37;
+}
