@@ -1,4 +1,8 @@
 <?php
+session_start();
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
 require_once "config/database.php";
 
 $product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -56,14 +60,19 @@ if (!$product) {
             <p>
                 Stock: <?php echo htmlspecialchars($product['stock_quantity']); ?>
             </p>
-<button type="button" class="add-to-cart-btn">
+             <a href="add-to-cart.php?id=<?php echo $product['product_id']; ?>" class="add-to-cart-btn">
     Add to Cart
-</button>
+</a>
             <a href="index.php">← Back to Products</a>
 
         </div>
 
     </section>
+    <script>
+function addToCart(productId) {
+    alert("Product ID: " + productId);
+}
+</script>
 
 </body>
 </html>
