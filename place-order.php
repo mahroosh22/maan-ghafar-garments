@@ -86,11 +86,12 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
         $item_stmt->execute();
     }
 }
-    echo "<h1>Order Placed Successfully!</h1>";
-    echo "<p>Order ID: " . $order_id . "</p>";
-    echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
-    echo "<p>Total Amount: Rs. " . number_format($total_amount) . "</p>";
-
+    echo "<h1>🎉 Order Placed Successfully!</h1>";
+echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
+echo "<p>Your Order ID is: <strong>#" . $order_id . "</strong></p>";
+echo "<p>Total Amount: <strong>Rs. " . number_format($total_amount) . "</strong></p>";
+echo "<p>Your order has been received successfully.</p>";
+echo '<a href="index.php">Continue Shopping</a>';
     unset($_SESSION['cart']);
 } else {
     echo "Order could not be placed.";
