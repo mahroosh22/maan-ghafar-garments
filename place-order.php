@@ -35,7 +35,11 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
 /* Save order */
 $user_id = 1;
 $status = "Pending";
-$payment_method = "Cash on Delivery";
+$payment_method = $_POST['payment_method'] ?? '';
+
+if ($payment_method === '') {
+    die("Please select a payment method.");
+}
 
 $stmt = $conn->prepare("
     INSERT INTO orders

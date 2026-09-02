@@ -76,6 +76,17 @@ button:hover {
 
     <label>Address</label><br>
     <textarea name="address" rows="4" required></textarea><br><br>
+    <label>Payment Method</label><br>
+
+<select name="payment_method" required>
+    <option value="">Select Payment Method</option>
+    <option value="Cash on Delivery">Cash on Delivery</option>
+    <option value="JazzCash">JazzCash</option>
+    <option value="EasyPaisa">EasyPaisa</option>
+    <option value="Bank Transfer">Bank Transfer</option>
+</select>
+
+<br><br>
 
     <button type="submit">Place Order</button>
 
