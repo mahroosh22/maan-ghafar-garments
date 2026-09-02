@@ -122,6 +122,9 @@ require_once "config/database.php";
 <h2>
     Grand Total: Rs. <?php echo number_format($grand_total); ?>
 </h2>
+<a href="checkout.php">
+    Proceed to Checkout
+</a>
 <a href="remove-from-cart.php?id=<?php echo $product_id; ?>">
     Remove
 </a>
