@@ -49,8 +49,8 @@ require_once "config/database.php";
             <div class="product-card">
 
                 <div class="product-image">
-                    <?php echo htmlspecialchars($product['product_name']); ?>
-                </div>
+    <img src="assets/image/<?php echo htmlspecialchars($product['image']); ?>" alt="">
+</div>
 
                 <h3>
                     <?php echo htmlspecialchars($product['product_name']); ?>
