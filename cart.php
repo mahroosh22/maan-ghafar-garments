@@ -14,6 +14,50 @@ require_once "config/database.php";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping Cart - Maan Ghafar Garments</title>
+    <style>
+.cart-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.quantity-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-controls a {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    background: #222;
+    color: white;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.quantity-controls a:hover {
+    opacity: 0.8;
+}
+.remove-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 8px 15px;
+    background: #c0392b;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.remove-btn:hover {
+    opacity: 0.8;
+}
+</style>
 </head>
 
 <body>
@@ -53,10 +97,24 @@ require_once "config/database.php";
     <p>
     Product: <?php echo htmlspecialchars($product['product_name']); ?>
     | Price: Rs. <?php echo number_format($product['price']); ?>
-    | Quantity: <?php echo $quantity; ?>
+    
+    | Quantity:
+    
+    <a href="update-cart.php?id=<?php echo $product_id; ?>&action=decrease">
+        −
+    </a>
+
+    <?php echo $quantity; ?>
+
+    <a href="update-cart.php?id=<?php echo $product_id; ?>&action=increase">
+        +
+    </a>
+
     | Total: Rs. <?php echo number_format($product['price'] * $quantity); ?>
 </p>
-
+<a href="remove-from-cart.php?id=<?php echo $product_id; ?>" class="remove-btn">
+    Remove
+</a>
 </div>
     <?php endif; ?>
 
