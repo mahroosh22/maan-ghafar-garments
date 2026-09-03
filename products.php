@@ -1,7 +1,14 @@
-```php
 <?php
 session_start();
 require_once "config/database.php";
+
+$category = isset($_GET['category']) ? (int)$_GET['category'] : 0;
+
+if ($category > 0) {
+    $result = $conn->query("SELECT * FROM products WHERE category_id = $category");
+} else {
+    $result = $conn->query("SELECT * FROM products");
+}
 ?>
 
 <!DOCTYPE html>
@@ -9,7 +16,7 @@ require_once "config/database.php";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maan Ghafar Garments</title>
+    <title>Products - Maan Ghafar Garments</title>
 
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -23,7 +30,6 @@ require_once "config/database.php";
     </div>
 
     <nav class="navbar">
-
         <a href="index.php">Home</a>
         <a href="products.php">Products</a>
         <a href="about.php">About</a>
@@ -43,77 +49,76 @@ require_once "config/database.php";
             <a href="register.php">Register</a>
 
         <?php endif; ?>
-
     </nav>
 
 </header>
 
+<section class="products">
 
-<section class="hero" id="home">
-
-    <div class="hero-content">
-
-        <h1>Welcome to Maan Ghafar Garments</h1>
-
-        <p>Quality Garments for Every Style</p>
-
-        <a href="products.php" class="hero-btn">
-            Shop Now
-        </a>
-
-    </div>
-
-</section>
-
-
-<section class="categories">
-
-    <h2>Shop By Category</h2>
-
-    <a href="products.php" class="all-products-btn">
-        All Products
-    </a>
+    <h2>Our Products</h2>
 
     <div class="category-container">
 
-        <a href="products.php?category=1" class="category-card">
-
-            <img src="assets/image/suite 1.jpg" alt="Lawn Dresses">
-
-            <h3>Lawn Dresses</h3>
-
+        <a href="products.php" class="all-products-btn">
+            All Products
         </a>
 
+        <a href="products.php?category=1" class="category-card">
+            <img src="assets/image/suite 1.jpg" alt="Lawn Dresses">
+            <h3>Lawn Dresses</h3>
+        </a>
 
         <a href="products.php?category=2" class="category-card">
-
             <img src="assets/image/suite 02.jpg" alt="Western Dresses">
-
             <h3>Western Dresses</h3>
-
         </a>
-
 
         <a href="products.php?category=3" class="category-card">
-
             <img src="assets/image/suite 03.jpg" alt="Maxi Dresses">
-
             <h3>Maxi Dresses</h3>
-
         </a>
+
+    </div>
+
+    <div class="product-container">
+
+        <?php while ($product = $result->fetch_assoc()): ?>
+
+            <div class="product-card">
+
+                <div class="product-image">
+                    <img
+                        src="assets/image/<?php echo htmlspecialchars($product['image']); ?>"
+                        alt=""
+                    >
+                </div>
+
+                <h3>
+                    <?php echo htmlspecialchars($product['product_name']); ?>
+                </h3>
+
+                <p>
+                    <?php echo htmlspecialchars($product['description']); ?>
+                </p>
+
+                <span>
+                    Rs. <?php echo number_format($product['price']); ?>
+                </span>
+
+                <a
+                    href="product-details.php?id=<?php echo $product['product_id']; ?>"
+                    class="view-details-btn"
+                >
+                    View Details
+                </a>
+
+            </div>
+
+        <?php endwhile; ?>
 
     </div>
 
 </section>
 
-
-<footer class="footer">
-
-    <p>&copy; 2026 Maan Ghafar Garments. All Rights Reserved.</p>
-
-</footer>
-
-
 </body>
 </html>
-```

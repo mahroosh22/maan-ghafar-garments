@@ -1,4 +1,4 @@
-```php
+
 <?php
 session_start();
 require_once "config/database.php";
@@ -9,7 +9,7 @@ require_once "config/database.php";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maan Ghafar Garments</title>
+    <title>Contact - Maan Ghafar Garments</title>
 
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -49,58 +49,23 @@ require_once "config/database.php";
 </header>
 
 
-<section class="hero" id="home">
+<section class="contact">
 
-    <div class="hero-content">
+    <h2>Contact Us</h2>
 
-        <h1>Welcome to Maan Ghafar Garments</h1>
+    <div class="contact-info">
 
-        <p>Quality Garments for Every Style</p>
+        <p>
+            <strong>Phone:</strong> 0300-0000000
+        </p>
 
-        <a href="products.php" class="hero-btn">
-            Shop Now
-        </a>
+        <p>
+            <strong>Email:</strong> info@maanghafargarments.com
+        </p>
 
-    </div>
-
-</section>
-
-
-<section class="categories">
-
-    <h2>Shop By Category</h2>
-
-    <a href="products.php" class="all-products-btn">
-        All Products
-    </a>
-
-    <div class="category-container">
-
-        <a href="products.php?category=1" class="category-card">
-
-            <img src="assets/image/suite 1.jpg" alt="Lawn Dresses">
-
-            <h3>Lawn Dresses</h3>
-
-        </a>
-
-
-        <a href="products.php?category=2" class="category-card">
-
-            <img src="assets/image/suite 02.jpg" alt="Western Dresses">
-
-            <h3>Western Dresses</h3>
-
-        </a>
-
-
-        <a href="products.php?category=3" class="category-card">
-
-            <img src="assets/image/suite 03.jpg" alt="Maxi Dresses">
-
-            <h3>Maxi Dresses</h3>
-
-        </a>
+        <p>
+            <strong>Address:</strong> Pakistan
+        </p>
 
     </div>
 
@@ -113,7 +78,6 @@ require_once "config/database.php";
 
 </footer>
 
-
 </body>
 </html>
-```
+
