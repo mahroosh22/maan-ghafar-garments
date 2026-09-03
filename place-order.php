@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -15,12 +16,29 @@ if ($name === '' || $phone === '' || $address === '') {
     die("Please fill all fields.");
 }
 
+$payment_method = $_POST['payment_method'] ?? '';
+
+if ($payment_method === '') {
+    die("Please select a payment method.");
+}
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$status = "Pending";
+
 /* Calculate total */
 $total_amount = 0;
 
 foreach ($_SESSION['cart'] as $product_id => $quantity) {
 
-    $stmt = $conn->prepare("SELECT price FROM products WHERE product_id = ?");
+    $stmt = $conn->prepare(
+        "SELECT price FROM products WHERE product_id = ?"
+    );
+
     $stmt->bind_param("i", $product_id);
     $stmt->execute();
 
@@ -33,19 +51,6 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
 }
 
 /* Save order */
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-$status = "Pending";
-$payment_method = $_POST['payment_method'] ?? '';
-
-if ($payment_method === '') {
-    die("Please select a payment method.");
-}
-
 $stmt = $conn->prepare("
     INSERT INTO orders
     (user_id, customer_name, phone, total_amount, status, shipping_address, payment_method)
@@ -63,11 +68,20 @@ $stmt->bind_param(
     $payment_method
 );
 
-if ($stmt->execute()) {
-    $order_id = $conn->insert_id;
+if (!$stmt->execute()) {
+    die("Order could not be placed.");
+}
+
+$order_id = $conn->insert_id;
+
+
+/* Save order items */
 foreach ($_SESSION['cart'] as $product_id => $quantity) {
 
-    $stmt = $conn->prepare("SELECT price FROM products WHERE product_id = ?");
+    $stmt = $conn->prepare(
+        "SELECT price FROM products WHERE product_id = ?"
+    );
+
     $stmt->bind_param("i", $product_id);
     $stmt->execute();
 
@@ -95,85 +109,129 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
         $item_stmt->execute();
     }
 }
-echo '<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Order Successful - Maan Ghafar Garments</title>
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
-    padding: 20px;
-}
-.order-success {
-    max-width: 600px;
-    margin: 60px auto;
-    padding: 30px;
-    background: white;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-    .success-icon {
-    width: 70px;
-    height: 70px;
-    margin: 0 auto 20px;
-    background: #27ae60;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    font-weight: bold;
-}
-    .order-info {
-    margin: 25px 0;
-    padding: 15px;
-    background: #f8f8f8;
-    border-radius: 8px;
-    text-align: left;
-}
 
-.order-info p {
-    margin: 10px 0;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-    .continue-btn {
-    display: inline-block;
-    padding: 12px 25px;
-    background: #222;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: bold;
-}
 
-.continue-btn:hover {
-    opacity: 0.85;
-}
-</style>
-</head>
-<body>
-<div class="order-success">';
-echo "<div class='success-icon'>✓</div>";
-    echo "<h1>🎉 Order Placed Successfully!</h1>";
-echo "<p>Thank you, " . htmlspecialchars($name) . "!</p>";
-echo "<div class='order-info'>";
-echo "<p><strong>Order ID:</strong> #" . $order_id . "</p>";
-echo "<p><strong>Payment Method:</strong> " . htmlspecialchars($payment_method) . "</p>";
-echo "<p>Total Amount: <strong>Rs. " . number_format($total_amount) . "</strong></p>";
-echo "<p>Your order has been received successfully.</p>";
-echo "</div>";
-echo '<a href="index.php" class="continue-btn">Continue Shopping</a>';
-echo '</div>
-</body>
-</html>';
-    unset($_SESSION['cart']);
-} else {
-    echo "Order could not be placed.";
-}
+/* Clear cart */
+unset($_SESSION['cart']);
 ?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Order Successful - Maan Ghafar Garments</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .order-success {
+            max-width: 600px;
+            margin: 60px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .success-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 20px;
+            background: #27ae60;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        .order-info {
+            margin: 25px 0;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .order-info p {
+            margin: 10px 0;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .continue-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #222;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .continue-btn:hover {
+            opacity: 0.85;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="order-success">
+
+    <div class="success-icon">✓</div>
+
+    <h1>🎉 Order Placed Successfully!</h1>
+
+    <p>
+        Thank you, <?php echo htmlspecialchars($name); ?>!
+    </p>
+
+    <div class="order-info">
+
+        <p>
+            <strong>Order ID:</strong>
+            #<?php echo $order_id; ?>
+        </p>
+
+        <p>
+            <strong>Payment Method:</strong>
+            <?php echo htmlspecialchars($payment_method); ?>
+        </p>
+
+        <p>
+            <strong>Total Amount:</strong>
+            Rs. <?php echo number_format($total_amount); ?>
+        </p>
+
+        <p>
+            Your order has been received successfully.
+        </p>
+
+    </div>
+
+    <a href="index.php" class="continue-btn">
+        Continue Shopping
+    </a>
+
+</div>
+
+</body>
+
+</html>
