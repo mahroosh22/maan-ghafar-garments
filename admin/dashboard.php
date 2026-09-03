@@ -239,7 +239,7 @@ if (!isset($_SESSION['admin_id'])) {
 
         <nav class="menu">
             <a href="dashboard.php" class="active">🏠 Dashboard</a>
-            <a href="#">📦 Products</a>
+            <a href="products.php">📦 Products</a>
             <a href="#">🛒 Orders</a>
             <a href="#">👥 Customers</a>
         </nav>
