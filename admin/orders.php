@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -8,11 +9,95 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once "../config/database.php";
 
+
+/* =========================
+   UPDATE ORDER STATUS
+========================= */
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $order_id = $_POST['order_id'] ?? '';
+    $status = $_POST['status'] ?? '';
+
+    $allowed_statuses = [
+        'pending',
+        'processing',
+        'completed',
+        'cancelled'
+    ];
+
+    if (
+        !empty($order_id) &&
+        in_array($status, $allowed_statuses)
+    ) {
+
+        $stmt = $conn->prepare(
+            "UPDATE orders SET status = ? WHERE order_id = ?"
+        );
+
+        $stmt->bind_param("ss", $status, $order_id);
+
+        $stmt->execute();
+
+        $stmt->close();
+    }
+
+    header("Location: orders.php");
+    exit;
+}
+
+
+/* =========================
+   ORDER COUNTS
+========================= */
+
 $total_orders = 0;
 $pending_orders = 0;
 $completed_orders = 0;
-?>
 
+
+/* Total Orders */
+
+$result = $conn->query(
+    "SELECT COUNT(*) AS total FROM orders"
+);
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $total_orders = $row['total'];
+}
+
+
+/* Pending Orders */
+
+$result = $conn->query(
+    "SELECT COUNT(*) AS total FROM orders WHERE status = 'pending'"
+);
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $pending_orders = $row['total'];
+}
+
+
+/* Completed Orders */
+
+$result = $conn->query(
+    "SELECT COUNT(*) AS total FROM orders WHERE status = 'completed'"
+);
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $completed_orders = $row['total'];
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -190,6 +275,67 @@ $completed_orders = 0;
         .empty-message p {
             line-height: 1.6;
         }
+        .orders-table {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.orders-table table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 14px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.orders-table th {
+    background: #f9fafb;
+    color: #374151;
+    font-size: 14px;
+}
+
+.orders-table td {
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.orders-table tr:hover {
+    background: #fafafa;
+}
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
 
         /* Mobile */
         @media (max-width: 900px) {
@@ -363,20 +509,126 @@ $completed_orders = 0;
             </div>
 
 
-            <div class="empty-message">
+           <div class="orders-table">
 
-                <div class="empty-icon">
-                    🛒
-                </div>
+    <?php
+    $orders_result = $conn->query("
+        SELECT order_id, customer_name, phone, total_amount, status, shipping_address, payment_method, created_at
+        FROM orders
+        ORDER BY created_at DESC
+    ");
+    ?>
 
-                <h3>No Orders Yet</h3>
+    <?php if ($orders_result && $orders_result->num_rows > 0): ?>
 
-                <p>
-                    Customer orders will appear here once
-                    customers start placing orders.
-                </p>
+        <table>
 
-            </div>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+
+    <?php while ($order = $orders_result->fetch_assoc()): ?>
+
+        <tr>
+
+            <td>
+                <?php echo htmlspecialchars($order['order_id']); ?>
+            </td>
+
+            <td>
+                <?php echo htmlspecialchars($order['customer_name']); ?>
+            </td>
+
+            <td>
+                <?php echo htmlspecialchars($order['phone']); ?>
+            </td>
+
+            <td>
+                Rs. <?php echo htmlspecialchars($order['total_amount']); ?>
+            </td>
+
+            <td>
+                <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
+                    <?php echo htmlspecialchars($order['status']); ?>
+                </span>
+            </td>
+
+            <td>
+                <?php echo htmlspecialchars($order['payment_method']); ?>
+            </td>
+
+            <td>
+                <?php echo htmlspecialchars($order['created_at']); ?>
+            </td>
+
+            <td>
+                <form method="POST" action="orders.php">
+
+    <input type="hidden"
+           name="order_id"
+           value="<?php echo htmlspecialchars($order['order_id']); ?>">
+
+    <select name="status" onchange="this.form.submit()">
+
+        <option value="pending"
+            <?php echo ($order['status'] === 'pending') ? 'selected' : ''; ?>>
+            Pending
+        </option>
+
+        <option value="processing"
+            <?php echo ($order['status'] === 'processing') ? 'selected' : ''; ?>>
+            Processing
+        </option>
+
+        <option value="completed"
+            <?php echo ($order['status'] === 'completed') ? 'selected' : ''; ?>>
+            Completed
+        </option>
+
+        <option value="cancelled"
+            <?php echo ($order['status'] === 'cancelled') ? 'selected' : ''; ?>>
+            Cancelled
+        </option>
+
+    </select>
+
+</form>
+            </td>
+
+        </tr>
+
+    <?php endwhile; ?>
+
+</tbody>
+
+        </table>
+
+    <?php else: ?>
+
+        <div class="empty-message">
+            <div class="empty-icon">🛒</div>
+
+            <h3>No Orders Yet</h3>
+
+            <p>
+                Customer orders will appear here once
+                customers start placing orders.
+            </p>
+        </div>
+
+    <?php endif; ?>
+
+</div>
 
         </div>
 
