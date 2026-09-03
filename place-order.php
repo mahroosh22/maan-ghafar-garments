@@ -33,7 +33,12 @@ foreach ($_SESSION['cart'] as $product_id => $quantity) {
 }
 
 /* Save order */
-$user_id = 1;
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
 $status = "Pending";
 $payment_method = $_POST['payment_method'] ?? '';
 
