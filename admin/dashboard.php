@@ -6,6 +6,32 @@ if (!isset($_SESSION['admin_id'])) {
     header("Location: login.php");
     exit;
 }
+
+require_once "../config/database.php";
+$total_products = 0;
+
+$result = $conn->query("SELECT COUNT(*) AS total FROM products");
+
+if ($result) {
+    $row = $result->fetch_assoc();
+    $total_products = $row['total'];
+}
+$total_orders = 0; 
+ 
+$result = $conn->query("SELECT COUNT(*) AS total FROM orders"); 
+ 
+if ($result) { 
+    $row = $result->fetch_assoc(); 
+    $total_orders = $row['total']; 
+}
+$total_customers = 0;
+
+$result = $conn->query("SELECT COUNT(*) AS total FROM users WHERE role = 'customer'");
+
+if ($result) {
+    $row = $result->fetch_assoc();
+    $total_customers = $row['total'];
+}
 ?>
 
 <!DOCTYPE html>
@@ -221,6 +247,68 @@ if (!isset($_SESSION['admin_id'])) {
                 font-size: 23px;
             }
         }
+        .orders-table {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.orders-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.orders-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+.orders-table tr:hover {
+    background: #fafafa;
+}
+
+.orders-table td {
+    font-size: 14px;
+}
+.orders-table td:nth-child(4) {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
     </style>
 </head>
 
@@ -266,26 +354,25 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
 
 
-        <!-- Cards -->
-        <div class="cards">
+        <!-- Cards --> 
+<div class="cards"> 
 
-            <div class="card">
-                <h3>Total Products</h3>
-                <div class="number">0</div>
-            </div>
+    <div class="card"> 
+        <h3>Total Products</h3> 
+        <div class="number"><?php echo $total_products; ?></div> 
+        
+    </div> 
+    
+    <div class="card">  
+    <h3>Total Orders</h3>  
+    <div class="number"><?php echo $total_orders; ?></div>  
+</div> 
 
-            <div class="card">
-                <h3>Total Orders</h3>
-                <div class="number">0</div>
-            </div>
+    <div class="card"> 
+        <h3>Total Customers</h3> 
+        <div class="number"><?php echo $total_customers; ?></div>
 
-            <div class="card">
-                <h3>Total Customers</h3>
-                <div class="number">0</div>
-            </div>
-
-        </div>
-
+</div>
 
         <!-- Welcome -->
         <div class="welcome-box">
@@ -299,7 +386,69 @@ if (!isset($_SESSION['admin_id'])) {
             </p>
 
         </div>
+<!-- Recent Orders -->
+<div class="welcome-box">
 
+    <h2>Recent Orders</h2>
+
+    <?php
+    $recent_orders = $conn->query("
+        SELECT order_id, customer_name, total_amount, status, created_at
+        FROM orders
+        ORDER BY created_at DESC
+    
+    ");
+    ?>
+
+    <?php if ($recent_orders && $recent_orders->num_rows > 0): ?>
+
+        <div class="orders-table">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <?php while ($order = $recent_orders->fetch_assoc()): ?>
+
+                        <tr>
+                            <td><?php echo htmlspecialchars($order['order_id']); ?></td>
+
+                            <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
+
+                            <td>Rs. <?php echo htmlspecialchars($order['total_amount']); ?></td>
+
+                            <td>
+    <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
+        <?php echo htmlspecialchars($order['status']); ?>
+    </span>
+</td>
+
+                            <td><?php echo htmlspecialchars($order['created_at']); ?></td>
+                        </tr>
+
+                    <?php endwhile; ?>
+
+                </tbody>
+            </table>
+
+        </div>
+
+    <?php else: ?>
+
+        <p>No orders found.</p>
+
+    <?php endif; ?>
+
+</div>
     </main>
 
 </body>
