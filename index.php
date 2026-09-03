@@ -73,7 +73,7 @@ if ($category > 0) {
 
 while ($product = $result->fetch_assoc()) {
 ?>
-<
+
             <div class="product-card">
 
                 <div class="product-image">
