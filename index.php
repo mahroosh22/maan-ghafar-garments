@@ -1,4 +1,4 @@
-```php
+
 <?php
 session_start();
 require_once "config/database.php";
@@ -28,6 +28,7 @@ require_once "config/database.php";
         <a href="products.php">Products</a>
         <a href="about.php">About</a>
         <a href="contact.php">Contact</a>
+        <a href="my-orders.php">My Orders</a>
 
         <?php if (isset($_SESSION['user_id'])): ?>
 
@@ -116,4 +117,4 @@ require_once "config/database.php";
 
 </body>
 </html>
-```
+
