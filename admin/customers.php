@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -8,18 +9,74 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once "../config/database.php";
 
+/* =========================
+   CUSTOMER STATISTICS
+========================= */
+
 $total_customers = 0;
+$active_customers = 0;
+$new_customers = 0;
+
+/* Total Customers */
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM users
+    WHERE role = 'customer'
+");
+
+if ($result) {
+    $row = $result->fetch_assoc();
+    $total_customers = $row['total'];
+}
+
+/* Active Customers
+   Assuming customers with role = customer
+   are active users.
+*/
+$active_customers = $total_customers;
+
+/* New Customers
+   Customers registered in the last 30 days.
+*/
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM users
+    WHERE role = 'customer'
+    AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+");
+
+if ($result) {
+    $row = $result->fetch_assoc();
+    $new_customers = $row['total'];
+}
+
+
+/* =========================
+   CUSTOMER LIST
+========================= */
+
+$customers_result = $conn->query("
+    SELECT id, name, email, phone, created_at
+    FROM users
+    WHERE role = 'customer'
+    ORDER BY created_at DESC
+");
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Customers - Maan Ghafar Garments</title>
 
     <style>
+
         * {
             margin: 0;
             padding: 0;
@@ -32,7 +89,10 @@ $total_customers = 0;
             color: #1f2937;
         }
 
-        /* Sidebar */
+        /* =========================
+           SIDEBAR
+        ========================= */
+
         .sidebar {
             position: fixed;
             left: 0;
@@ -41,6 +101,7 @@ $total_customers = 0;
             height: 100vh;
             background: #111827;
             padding: 25px 18px;
+            z-index: 9999;
         }
 
         .logo {
@@ -60,6 +121,11 @@ $total_customers = 0;
             margin-bottom: 30px;
         }
 
+        .menu {
+            position: relative;
+            z-index: 10000;
+        }
+
         .menu a {
             display: block;
             text-decoration: none;
@@ -68,6 +134,8 @@ $total_customers = 0;
             margin-bottom: 8px;
             border-radius: 8px;
             transition: 0.3s;
+            position: relative;
+            z-index: 10001;
         }
 
         .menu a:hover,
@@ -97,10 +165,16 @@ $total_customers = 0;
             background: #b91c1c;
         }
 
-        /* Main Content */
+
+        /* =========================
+           MAIN CONTENT
+        ========================= */
+
         .main-content {
             margin-left: 250px;
             padding: 30px;
+            position: relative;
+            z-index: 1;
         }
 
         .topbar {
@@ -121,7 +195,11 @@ $total_customers = 0;
             color: #6b7280;
         }
 
-        /* Customer Stats */
+
+        /* =========================
+           CUSTOMER STATS
+        ========================= */
+
         .stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -149,7 +227,11 @@ $total_customers = 0;
             color: #111827;
         }
 
-        /* Customers Box */
+
+        /* =========================
+           CUSTOMERS BOX
+        ========================= */
+
         .customers-box {
             background: #ffffff;
             border-radius: 12px;
@@ -168,6 +250,83 @@ $total_customers = 0;
             color: #111827;
             font-size: 21px;
         }
+
+
+        /* =========================
+           CUSTOMER TABLE
+        ========================= */
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .customers-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        .customers-table th {
+            background: #f9fafb;
+            color: #374151;
+            text-align: left;
+            padding: 14px;
+            font-size: 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .customers-table td {
+            padding: 14px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+            font-size: 14px;
+        }
+
+        .customers-table tr:hover {
+            background: #fafafa;
+        }
+
+        .customer-name {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .customer-id {
+            color: #b8860b;
+            font-weight: bold;
+        }
+
+.view-btn,
+.delete-btn {
+    border: none;
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 5px;
+}
+
+.view-btn {
+    background: #b8860b;
+    color: #ffffff;
+}
+
+.delete-btn {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.view-btn:hover {
+    background: #967000;
+}
+
+.delete-btn:hover {
+    background: #b91c1c;
+}
+        /* =========================
+           EMPTY MESSAGE
+        ========================= */
 
         .empty-message {
             text-align: center;
@@ -189,8 +348,13 @@ $total_customers = 0;
             line-height: 1.6;
         }
 
-        /* Mobile */
+
+        /* =========================
+           MOBILE
+        ========================= */
+
         @media (max-width: 900px) {
+
             .sidebar {
                 width: 210px;
             }
@@ -202,9 +366,12 @@ $total_customers = 0;
             .stats {
                 grid-template-columns: 1fr;
             }
+
         }
 
+
         @media (max-width: 650px) {
+
             .sidebar {
                 position: relative;
                 width: 100%;
@@ -250,13 +417,21 @@ $total_customers = 0;
             .customers-box {
                 padding: 18px;
             }
+
         }
+
     </style>
+
 </head>
+
 
 <body>
 
-    <!-- Sidebar -->
+
+    <!-- =========================
+         SIDEBAR
+    ========================= -->
+
     <aside class="sidebar">
 
         <div class="logo">
@@ -289,20 +464,30 @@ $total_customers = 0;
         </nav>
 
         <div class="logout">
+
             <a href="logout.php">
                 Logout
             </a>
+
         </div>
 
     </aside>
 
 
-    <!-- Main Content -->
+    <!-- =========================
+         MAIN CONTENT
+    ========================= -->
+
     <main class="main-content">
+
+
+        <!-- TOP BAR -->
 
         <div class="topbar">
 
-            <h1>Customers</h1>
+            <h1>
+                Customers
+            </h1>
 
             <p>
                 Manage and monitor your customers from here.
@@ -311,72 +496,227 @@ $total_customers = 0;
         </div>
 
 
-        <!-- Statistics -->
+        <!-- =========================
+             STATISTICS
+        ========================= -->
+
         <div class="stats">
 
+
+            <!-- TOTAL CUSTOMERS -->
+
             <div class="stat-card">
 
-                <h3>Total Customers</h3>
+                <h3>
+                    Total Customers
+                </h3>
 
                 <div class="stat-number">
+
                     <?php echo $total_customers; ?>
+
                 </div>
 
             </div>
 
+
+            <!-- ACTIVE CUSTOMERS -->
 
             <div class="stat-card">
 
-                <h3>Active Customers</h3>
+                <h3>
+                    Active Customers
+                </h3>
 
                 <div class="stat-number">
-                    0
+
+                    <?php echo $active_customers; ?>
+
                 </div>
 
             </div>
 
+
+            <!-- NEW CUSTOMERS -->
 
             <div class="stat-card">
 
-                <h3>New Customers</h3>
+                <h3>
+                    New Customers
+                </h3>
 
                 <div class="stat-number">
-                    0
+
+                    <?php echo $new_customers; ?>
+
                 </div>
 
             </div>
+
 
         </div>
 
 
-        <!-- Customers List -->
+        <!-- =========================
+             CUSTOMER LIST
+        ========================= -->
+
         <div class="customers-box">
+
 
             <div class="customers-header">
 
-                <h2>Customer List</h2>
+                <h2>
+                    Customer List
+                </h2>
 
             </div>
 
 
-            <div class="empty-message">
+            <?php if ($customers_result && $customers_result->num_rows > 0): ?>
 
-                <div class="empty-icon">
-                    👥
+
+                <div class="table-wrapper">
+
+                    <table class="customers-table">
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    ID
+                                </th>
+
+                                <th>
+                                    Name
+                                </th>
+
+                                <th>
+                                    Email
+                                </th>
+
+                                <th>
+                                    Phone
+                                </th>
+
+                                <th>
+                                    Registered
+                                </th>
+<th>Action</th>
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+
+                            <?php while ($customer = $customers_result->fetch_assoc()): ?>
+
+                                <tr>
+
+                                    <td>
+
+                                        <span class="customer-id">
+
+                                            #<?php echo htmlspecialchars($customer['id']); ?>
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="customer-name">
+
+                                            <?php echo htmlspecialchars($customer['name']); ?>
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <?php echo htmlspecialchars($customer['email']); ?>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <?php
+
+                                        echo !empty($customer['phone'])
+                                            ? htmlspecialchars($customer['phone'])
+                                            : 'Not provided';
+
+                                        ?>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <?php echo htmlspecialchars($customer['created_at']); ?>
+
+                                    </td>
+
+<td>
+    <a href="customer_view.php?id=<?php echo $customer['id']; ?>" class="view-btn">
+    View
+</a>
+
+    <button type="button" class="delete-btn">
+        Delete
+    </button>
+</td>
+                                </tr>
+
+                            <?php endwhile; ?>
+
+
+                        </tbody>
+
+
+                    </table>
+
                 </div>
 
-                <h3>No Customers Yet</h3>
 
-                <p>
-                    Customer information will appear here
-                    once customers register on the website.
-                </p>
+            <?php else: ?>
 
-            </div>
+
+                <div class="empty-message">
+
+                    <div class="empty-icon">
+                        👥
+                    </div>
+
+                    <h3>
+                        No Customers Yet
+                    </h3>
+
+                    <p>
+                        Customer information will appear here
+                        once customers register on the website.
+                    </p>
+
+                </div>
+
+
+            <?php endif; ?>
+
 
         </div>
 
+
     </main>
 
+
 </body>
+
 </html>
