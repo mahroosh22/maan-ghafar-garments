@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -422,11 +421,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 📦 Products
             </a>
 
-            <a href="#">
+            <a href="orders.php">
                 🛒 Orders
             </a>
 
-            <a href="#">
+            <a href="customers.php">
                 👥 Customers
             </a>
 

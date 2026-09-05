@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -16,7 +15,10 @@ require_once "../config/database.php";
 
 $total_products = 0;
 
-$result = $conn->query("SELECT COUNT(*) AS total FROM products");
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM products
+");
 
 if ($result) {
     $row = $result->fetch_assoc();
@@ -30,7 +32,10 @@ if ($result) {
 
 $total_orders = 0;
 
-$result = $conn->query("SELECT COUNT(*) AS total FROM orders");
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM orders
+");
 
 if ($result) {
     $row = $result->fetch_assoc();
@@ -57,13 +62,57 @@ if ($result) {
 
 
 /* =========================
+   PENDING ORDERS
+========================= */
+
+$pending_orders = 0;
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM orders
+    WHERE status = 'pending'
+");
+
+if ($result) {
+    $row = $result->fetch_assoc();
+    $pending_orders = $row['total'];
+}
+
+
+/* =========================
+   COMPLETED ORDERS
+========================= */
+
+$completed_orders = 0;
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM orders
+    WHERE status = 'completed'
+");
+
+if ($result) {
+    $row = $result->fetch_assoc();
+    $completed_orders = $row['total'];
+}
+
+
+/* =========================
    RECENT ORDERS
 ========================= */
 
 $recent_orders = $conn->query("
-    SELECT order_id, customer_name, total_amount, status, created_at
-    FROM orders
-    ORDER BY created_at DESC
+    SELECT
+        o.order_id,
+        o.total_amount,
+        o.status,
+        o.created_at,
+        u.name AS customer_name
+    FROM orders o
+    LEFT JOIN users u
+        ON o.user_id = u.id
+    ORDER BY o.created_at DESC
+    LIMIT 10
 ");
 
 ?>
@@ -75,9 +124,14 @@ $recent_orders = $conn->query("
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <title>Admin Dashboard - Maan Ghafar Garments</title>
+    <title>
+        Admin Dashboard - Maan Ghafar Garments
+    </title>
 
 
     <style>
@@ -118,6 +172,7 @@ $recent_orders = $conn->query("
 
         .logo {
             text-align: center;
+
             color: #b8860b;
 
             font-size: 20px;
@@ -126,6 +181,8 @@ $recent_orders = $conn->query("
             letter-spacing: 1px;
 
             margin-bottom: 40px;
+
+            line-height: 1.4;
         }
 
 
@@ -146,6 +203,7 @@ $recent_orders = $conn->query("
 
         .menu {
             position: relative;
+
             z-index: 10000;
         }
 
@@ -168,10 +226,6 @@ $recent_orders = $conn->query("
             transition: 0.3s;
 
             cursor: pointer;
-
-            position: relative;
-
-            z-index: 10001;
         }
 
 
@@ -195,8 +249,6 @@ $recent_orders = $conn->query("
             left: 18px;
 
             right: 18px;
-
-            z-index: 10000;
         }
 
 
@@ -230,10 +282,6 @@ $recent_orders = $conn->query("
             margin-left: 250px;
 
             padding: 30px;
-
-            position: relative;
-
-            z-index: 1;
         }
 
 
@@ -246,7 +294,8 @@ $recent_orders = $conn->query("
 
             margin-bottom: 25px;
 
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.06);
         }
 
 
@@ -271,27 +320,32 @@ $recent_orders = $conn->query("
         .cards {
             display: grid;
 
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns:
+                repeat(5, 1fr);
 
-            gap: 20px;
+            gap: 18px;
+
+            margin-bottom: 25px;
         }
 
 
         .card {
             background: #ffffff;
 
-            padding: 25px;
+            padding: 22px;
 
             border-radius: 12px;
 
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.06);
 
-            border-left: 4px solid #b8860b;
+            border-left:
+                4px solid #b8860b;
         }
 
 
         .card h3 {
-            font-size: 16px;
+            font-size: 14px;
 
             color: #6b7280;
 
@@ -300,7 +354,7 @@ $recent_orders = $conn->query("
 
 
         .card .number {
-            font-size: 32px;
+            font-size: 30px;
 
             font-weight: bold;
 
@@ -321,7 +375,8 @@ $recent_orders = $conn->query("
 
             border-radius: 12px;
 
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.06);
         }
 
 
@@ -340,6 +395,50 @@ $recent_orders = $conn->query("
 
 
         /* =========================
+           ORDERS HEADER
+        ========================= */
+
+        .orders-header {
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 20px;
+        }
+
+
+        .orders-header h2 {
+            color: #111827;
+        }
+
+
+        .all-orders-btn {
+            display: inline-block;
+
+            text-decoration: none;
+
+            background: #111827;
+
+            color: #ffffff;
+
+            padding: 9px 15px;
+
+            border-radius: 7px;
+
+            font-size: 13px;
+
+            font-weight: 600;
+        }
+
+
+        .all-orders-btn:hover {
+            background: #374151;
+        }
+
+
+        /* =========================
            ORDERS TABLE
         ========================= */
 
@@ -347,13 +446,13 @@ $recent_orders = $conn->query("
             width: 100%;
 
             overflow-x: auto;
-
-            margin-top: 20px;
         }
 
 
         .orders-table table {
             width: 100%;
+
+            min-width: 750px;
 
             border-collapse: collapse;
 
@@ -367,7 +466,8 @@ $recent_orders = $conn->query("
 
             text-align: left;
 
-            border-bottom: 1px solid #eeeeee;
+            border-bottom:
+                1px solid #eeeeee;
         }
 
 
@@ -375,6 +475,8 @@ $recent_orders = $conn->query("
             background: #f5f5f5;
 
             font-weight: 600;
+
+            color: #374151;
         }
 
 
@@ -385,6 +487,8 @@ $recent_orders = $conn->query("
 
         .orders-table td {
             font-size: 14px;
+
+            color: #4b5563;
         }
 
 
@@ -436,8 +540,59 @@ $recent_orders = $conn->query("
 
 
         /* =========================
+           VIEW BUTTON
+        ========================= */
+
+        .view-btn {
+            display: inline-block;
+
+            text-decoration: none;
+
+            background: #b8860b;
+
+            color: #ffffff;
+
+            padding: 7px 13px;
+
+            border-radius: 6px;
+
+            font-size: 13px;
+
+            font-weight: 600;
+        }
+
+
+        .view-btn:hover {
+            background: #967000;
+        }
+
+
+        /* =========================
+           EMPTY MESSAGE
+        ========================= */
+
+        .empty-message {
+            text-align: center;
+
+            padding: 35px 20px;
+
+            color: #6b7280;
+        }
+
+
+        /* =========================
            MOBILE
         ========================= */
+
+        @media (max-width: 1100px) {
+
+            .cards {
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+        }
+
 
         @media (max-width: 900px) {
 
@@ -452,7 +607,8 @@ $recent_orders = $conn->query("
 
 
             .cards {
-                grid-template-columns: 1fr;
+                grid-template-columns:
+                    repeat(2, 1fr);
             }
 
         }
@@ -519,6 +675,25 @@ $recent_orders = $conn->query("
                 font-size: 23px;
             }
 
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+
+            .welcome-box {
+                padding: 20px;
+            }
+
+
+            .orders-header {
+                align-items: flex-start;
+
+                gap: 10px;
+
+                flex-direction: column;
+            }
+
         }
 
     </style>
@@ -529,23 +704,35 @@ $recent_orders = $conn->query("
 <body>
 
 
-    <!-- SIDEBAR -->
+    <!-- =========================
+         SIDEBAR
+    ========================= -->
 
     <aside class="sidebar">
 
+
         <div class="logo">
-            MAAN GHAFAR<br>GARMENTS
+
+            MAAN GHAFAR<br>
+            GARMENTS
+
         </div>
 
 
         <div class="admin-title">
+
             ADMIN PANEL
+
         </div>
 
 
         <nav class="menu">
 
-            <a href="dashboard.php" class="active">
+
+            <a
+                href="dashboard.php"
+                class="active"
+            >
                 🏠 Dashboard
             </a>
 
@@ -564,6 +751,7 @@ $recent_orders = $conn->query("
                 👥 Customers
             </a>
 
+
         </nav>
 
 
@@ -575,11 +763,13 @@ $recent_orders = $conn->query("
 
         </div>
 
+
     </aside>
 
 
-
-    <!-- MAIN CONTENT -->
+    <!-- =========================
+         MAIN CONTENT
+    ========================= -->
 
     <main class="main-content">
 
@@ -598,7 +788,11 @@ $recent_orders = $conn->query("
                 Welcome back,
 
                 <strong>
-                    <?php echo htmlspecialchars($_SESSION['admin_name']); ?>
+                    <?php
+                    echo htmlspecialchars(
+                        $_SESSION['admin_name'] ?? 'Admin'
+                    );
+                    ?>
                 </strong>
 
             </p>
@@ -606,8 +800,9 @@ $recent_orders = $conn->query("
         </div>
 
 
-
-        <!-- DASHBOARD CARDS -->
+        <!-- =========================
+             DASHBOARD CARDS
+        ========================= -->
 
         <div class="cards">
 
@@ -651,11 +846,38 @@ $recent_orders = $conn->query("
             </div>
 
 
+            <div class="card">
+
+                <h3>
+                    Pending Orders
+                </h3>
+
+                <div class="number">
+                    <?php echo $pending_orders; ?>
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <h3>
+                    Completed Orders
+                </h3>
+
+                <div class="number">
+                    <?php echo $completed_orders; ?>
+                </div>
+
+            </div>
+
+
         </div>
 
 
-
-        <!-- WELCOME BOX -->
+        <!-- =========================
+             WELCOME BOX
+        ========================= -->
 
         <div class="welcome-box">
 
@@ -668,7 +890,7 @@ $recent_orders = $conn->query("
 
                 This is your administration dashboard.
 
-                From here you will be able to manage products,
+                From here you can manage products,
                 orders and customers.
 
             </p>
@@ -676,22 +898,41 @@ $recent_orders = $conn->query("
         </div>
 
 
-
-        <!-- RECENT ORDERS -->
+        <!-- =========================
+             RECENT ORDERS
+        ========================= -->
 
         <div class="welcome-box">
 
-            <h2>
-                Recent Orders
-            </h2>
+
+            <div class="orders-header">
+
+                <h2>
+                    Recent Orders
+                </h2>
 
 
-            <?php if ($recent_orders && $recent_orders->num_rows > 0): ?>
+                <a
+                    href="orders.php"
+                    class="all-orders-btn"
+                >
+                    View All Orders
+                </a>
+
+            </div>
+
+
+            <?php if (
+                $recent_orders &&
+                $recent_orders->num_rows > 0
+            ): ?>
 
 
                 <div class="orders-table">
 
+
                     <table>
+
 
                         <thead>
 
@@ -701,20 +942,29 @@ $recent_orders = $conn->query("
                                     Order ID
                                 </th>
 
+
                                 <th>
                                     Customer
                                 </th>
+
 
                                 <th>
                                     Total Amount
                                 </th>
 
+
                                 <th>
                                     Status
                                 </th>
 
+
                                 <th>
                                     Date
+                                </th>
+
+
+                                <th>
+                                    Action
                                 </th>
 
                             </tr>
@@ -725,32 +975,68 @@ $recent_orders = $conn->query("
                         <tbody>
 
 
-                            <?php while ($order = $recent_orders->fetch_assoc()): ?>
+                            <?php
+                            while (
+                                $order =
+                                $recent_orders->fetch_assoc()
+                            ):
+                            ?>
 
 
                                 <tr>
 
+
                                     <td>
-                                        <?php echo htmlspecialchars($order['order_id']); ?>
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $order['order_id']
+                                        );
+                                        ?>
+
                                     </td>
 
 
                                     <td>
-                                        <?php echo htmlspecialchars($order['customer_name']); ?>
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $order['customer_name']
+                                            ?? 'Guest'
+                                        );
+                                        ?>
+
                                     </td>
 
 
                                     <td>
+
                                         Rs.
-                                        <?php echo htmlspecialchars($order['total_amount']); ?>
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $order['total_amount']
+                                        );
+                                        ?>
+
                                     </td>
 
 
                                     <td>
 
-                                        <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
+                                        <span
+                                            class="status-badge status-<?php
+                                            echo strtolower(
+                                                $order['status']
+                                            );
+                                            ?>"
+                                        >
 
-                                            <?php echo htmlspecialchars($order['status']); ?>
+                                            <?php
+                                            echo htmlspecialchars(
+                                                $order['status']
+                                            );
+                                            ?>
 
                                         </span>
 
@@ -758,8 +1044,31 @@ $recent_orders = $conn->query("
 
 
                                     <td>
-                                        <?php echo htmlspecialchars($order['created_at']); ?>
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $order['created_at']
+                                        );
+                                        ?>
+
                                     </td>
+
+
+                                    <td>
+
+                                        <a
+                                            href="order_view.php?id=<?php
+                                            echo urlencode(
+                                                $order['order_id']
+                                            );
+                                            ?>"
+                                            class="view-btn"
+                                        >
+                                            View
+                                        </a>
+
+                                    </td>
+
 
                                 </tr>
 
@@ -769,7 +1078,9 @@ $recent_orders = $conn->query("
 
                         </tbody>
 
+
                     </table>
+
 
                 </div>
 
@@ -777,9 +1088,11 @@ $recent_orders = $conn->query("
             <?php else: ?>
 
 
-                <p>
+                <div class="empty-message">
+
                     No orders found.
-                </p>
+
+                </div>
 
 
             <?php endif; ?>
