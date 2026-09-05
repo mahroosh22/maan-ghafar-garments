@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -9,6 +8,192 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once "../config/database.php";
 
+
+/* =========================
+   DELETE CUSTOMER
+========================= */
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $customer_id = $_POST['customer_id'] ?? '';
+
+    if (!empty($customer_id)) {
+
+        $conn->begin_transaction();
+
+        try {
+
+            /* =========================
+               DELETE ORDER ITEMS
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM order_items
+                WHERE order_id IN (
+                    SELECT order_id
+                    FROM orders
+                    WHERE user_id = ?
+                )
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE PAYMENTS
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM payments
+                WHERE order_id IN (
+                    SELECT order_id
+                    FROM orders
+                    WHERE user_id = ?
+                )
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE SHIPPING
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM shipping
+                WHERE order_id IN (
+                    SELECT order_id
+                    FROM orders
+                    WHERE user_id = ?
+                )
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE ORDERS
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM orders
+                WHERE user_id = ?
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE ADDRESSES
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM addresses
+                WHERE user_id = ?
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE CART
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM cart
+                WHERE user_id = ?
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE WISHLIST
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM wishlist
+                WHERE user_id = ?
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE REVIEWS
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM reviews
+                WHERE user_id = ?
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               DELETE CUSTOMER
+            ========================= */
+
+            $stmt = $conn->prepare("
+                DELETE FROM users
+                WHERE id = ? AND role = 'customer'
+            ");
+
+            $stmt->bind_param("i", $customer_id);
+            $stmt->execute();
+            $stmt->close();
+
+
+            /* =========================
+               SAVE ALL CHANGES
+            ========================= */
+
+            $conn->commit();
+
+            echo "<script>
+                alert('Customer and all related data deleted successfully.');
+                window.location.href = 'customers.php';
+            </script>";
+
+            exit;
+
+
+        } catch (Exception $e) {
+
+            /* =========================
+               UNDO EVERYTHING
+            ========================= */
+
+            $conn->rollback();
+
+            echo "<script>
+                alert('Customer could not be deleted. Please try again.');
+                window.location.href = 'customers.php';
+            </script>";
+
+            exit;
+        }
+    }
+}
+
+
 /* =========================
    CUSTOMER STATISTICS
 ========================= */
@@ -17,7 +202,9 @@ $total_customers = 0;
 $active_customers = 0;
 $new_customers = 0;
 
+
 /* Total Customers */
+
 $result = $conn->query("
     SELECT COUNT(*) AS total
     FROM users
@@ -25,19 +212,20 @@ $result = $conn->query("
 ");
 
 if ($result) {
+
     $row = $result->fetch_assoc();
+
     $total_customers = $row['total'];
 }
 
-/* Active Customers
-   Assuming customers with role = customer
-   are active users.
-*/
+
+/* Active Customers */
+
 $active_customers = $total_customers;
 
-/* New Customers
-   Customers registered in the last 30 days.
-*/
+
+/* New Customers */
+
 $result = $conn->query("
     SELECT COUNT(*) AS total
     FROM users
@@ -46,7 +234,9 @@ $result = $conn->query("
 ");
 
 if ($result) {
+
     $row = $result->fetch_assoc();
+
     $new_customers = $row['total'];
 }
 
@@ -88,6 +278,7 @@ $customers_result = $conn->query("
             background: #f4f6f8;
             color: #1f2937;
         }
+
 
         /* =========================
            SIDEBAR
@@ -297,33 +488,42 @@ $customers_result = $conn->query("
             font-weight: bold;
         }
 
-.view-btn,
-.delete-btn {
-    border: none;
-    padding: 7px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    margin-right: 5px;
-}
 
-.view-btn {
-    background: #b8860b;
-    color: #ffffff;
-}
+        /* =========================
+           BUTTONS
+        ========================= */
 
-.delete-btn {
-    background: #dc2626;
-    color: #ffffff;
-}
+        .view-btn,
+        .delete-btn {
+            border: none;
+            padding: 7px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 5px;
+        }
 
-.view-btn:hover {
-    background: #967000;
-}
+        .view-btn {
+            background: #b8860b;
+            color: #ffffff;
+            text-decoration: none;
+            display: inline-block;
+        }
 
-.delete-btn:hover {
-    background: #b91c1c;
-}
+        .delete-btn {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .view-btn:hover {
+            background: #967000;
+        }
+
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+
+
         /* =========================
            EMPTY MESSAGE
         ========================= */
@@ -503,8 +703,6 @@ $customers_result = $conn->query("
         <div class="stats">
 
 
-            <!-- TOTAL CUSTOMERS -->
-
             <div class="stat-card">
 
                 <h3>
@@ -512,15 +710,11 @@ $customers_result = $conn->query("
                 </h3>
 
                 <div class="stat-number">
-
                     <?php echo $total_customers; ?>
-
                 </div>
 
             </div>
 
-
-            <!-- ACTIVE CUSTOMERS -->
 
             <div class="stat-card">
 
@@ -529,15 +723,11 @@ $customers_result = $conn->query("
                 </h3>
 
                 <div class="stat-number">
-
                     <?php echo $active_customers; ?>
-
                 </div>
 
             </div>
 
-
-            <!-- NEW CUSTOMERS -->
 
             <div class="stat-card">
 
@@ -546,9 +736,7 @@ $customers_result = $conn->query("
                 </h3>
 
                 <div class="stat-number">
-
                     <?php echo $new_customers; ?>
-
                 </div>
 
             </div>
@@ -585,26 +773,18 @@ $customers_result = $conn->query("
 
                             <tr>
 
-                                <th>
-                                    ID
-                                </th>
+                                <th>ID</th>
 
-                                <th>
-                                    Name
-                                </th>
+                                <th>Name</th>
 
-                                <th>
-                                    Email
-                                </th>
+                                <th>Email</th>
 
-                                <th>
-                                    Phone
-                                </th>
+                                <th>Phone</th>
 
-                                <th>
-                                    Registered
-                                </th>
-<th>Action</th>
+                                <th>Registered</th>
+
+                                <th>Action</th>
+
                             </tr>
 
                         </thead>
@@ -620,9 +800,7 @@ $customers_result = $conn->query("
                                     <td>
 
                                         <span class="customer-id">
-
                                             #<?php echo htmlspecialchars($customer['id']); ?>
-
                                         </span>
 
                                     </td>
@@ -631,18 +809,14 @@ $customers_result = $conn->query("
                                     <td>
 
                                         <span class="customer-name">
-
                                             <?php echo htmlspecialchars($customer['name']); ?>
-
                                         </span>
 
                                     </td>
 
 
                                     <td>
-
                                         <?php echo htmlspecialchars($customer['email']); ?>
-
                                     </td>
 
 
@@ -660,20 +834,45 @@ $customers_result = $conn->query("
 
 
                                     <td>
-
                                         <?php echo htmlspecialchars($customer['created_at']); ?>
+                                    </td>
+
+
+                                    <td>
+
+                                        <a
+                                            href="customer_view.php?id=<?php echo $customer['id']; ?>"
+                                            class="view-btn"
+                                        >
+                                            View
+                                        </a>
+
+
+                                        <form
+                                            method="POST"
+                                            action="customers.php"
+                                            style="display:inline;"
+                                        >
+
+                                            <input
+                                                type="hidden"
+                                                name="customer_id"
+                                                value="<?php echo $customer['id']; ?>"
+                                            >
+
+
+                                            <button
+                                                type="submit"
+                                                class="delete-btn"
+                                                onclick="return confirm('WARNING: This will delete the customer and all their orders and related data. Are you sure?');"
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </form>
 
                                     </td>
 
-<td>
-    <a href="customer_view.php?id=<?php echo $customer['id']; ?>" class="view-btn">
-    View
-</a>
-
-    <button type="button" class="delete-btn">
-        Delete
-    </button>
-</td>
                                 </tr>
 
                             <?php endwhile; ?>
