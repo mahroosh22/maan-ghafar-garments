@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -16,9 +17,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $error = "Please fill all fields.";
 
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        $error = "Please enter a valid email address.";
+
+    } elseif (strlen($password) < 6) {
+
+        $error = "Password must be at least 6 characters.";
+
     } else {
 
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        /* =========================
+           CHECK EMAIL
+        ========================= */
+
+        $stmt = $conn->prepare("
+            SELECT id
+            FROM users
+            WHERE email = ?
+            LIMIT 1
+        ");
+
         $stmt->bind_param("s", $email);
         $stmt->execute();
 
@@ -28,21 +47,51 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $error = "Email already registered.";
 
+            $stmt->close();
+
         } else {
 
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $stmt->close();
 
-            $stmt = $conn->prepare(
-                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)"
+            /* =========================
+               HASH PASSWORD
+            ========================= */
+
+            $hashed_password = password_hash(
+                $password,
+                PASSWORD_DEFAULT
             );
 
-            $stmt->bind_param("sss", $name, $email, $hashed_password);
+
+            /* =========================
+               CREATE CUSTOMER ACCOUNT
+            ========================= */
+
+            $stmt = $conn->prepare("
+                INSERT INTO users
+                (name, email, password, role)
+                VALUES (?, ?, ?, 'customer')
+            ");
+
+            $stmt->bind_param(
+                "sss",
+                $name,
+                $email,
+                $hashed_password
+            );
+
 
             if ($stmt->execute()) {
+
                 $success = "Registration successful! You can now login.";
+
             } else {
+
                 $error = "Registration failed. Please try again.";
+
             }
+
+            $stmt->close();
         }
     }
 }
@@ -50,13 +99,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Register - Maan Ghafar Garments</title>
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Register - Maan Ghafar Garments
+    </title>
 
     <style>
+
         body {
             font-family: Arial, sans-serif;
             background: #f5f5f5;
@@ -128,44 +186,93 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-weight: bold;
             text-decoration: none;
         }
+
     </style>
+
 </head>
 
 <body>
 
 <div class="register-box">
 
-    <h1>Create Account</h1>
+    <h1>
+        Create Account
+    </h1>
+
 
     <?php if ($error !== ''): ?>
-        <p class="error"><?php echo htmlspecialchars($error); ?></p>
+
+        <p class="error">
+            <?php echo htmlspecialchars($error); ?>
+        </p>
+
     <?php endif; ?>
 
+
     <?php if ($success !== ''): ?>
-        <p class="success"><?php echo htmlspecialchars($success); ?></p>
+
+        <p class="success">
+            <?php echo htmlspecialchars($success); ?>
+        </p>
+
     <?php endif; ?>
+
 
     <form method="POST">
 
-        <label>Name</label>
-        <input type="text" name="name" required>
+        <label>
+            Name
+        </label>
 
-        <label>Email</label>
-        <input type="email" name="email" required>
+        <input
+            type="text"
+            name="name"
+            required
+        >
 
-        <label>Password</label>
-        <input type="password" name="password" required>
 
-        <button type="submit">Register</button>
+        <label>
+            Email
+        </label>
+
+        <input
+            type="email"
+            name="email"
+            required
+        >
+
+
+        <label>
+            Password
+        </label>
+
+        <input
+            type="password"
+            name="password"
+            minlength="6"
+            required
+        >
+
+
+        <button type="submit">
+            Register
+        </button>
 
     </form>
 
+
     <div class="login-link">
+
         Already have an account?
-        <a href="login.php">Login</a>
+
+        <a href="login.php">
+            Login
+        </a>
+
     </div>
 
 </div>
 
 </body>
+
 </html>

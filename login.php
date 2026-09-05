@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -11,40 +12,65 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password = $_POST['password'] ?? '';
 
     if ($email === '' || $password === '') {
+
         $error = "Please fill all fields.";
+
     } else {
 
-        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt = $conn->prepare("
+            SELECT id, name, email, password, role
+            FROM users
+            WHERE email = ?
+            LIMIT 1
+        ");
+
         $stmt->bind_param("s", $email);
         $stmt->execute();
 
         $result = $stmt->get_result();
         $user = $result->fetch_assoc();
 
-        if ($user && password_verify($password, $user['password'])) {
+        if (
+            $user &&
+            $user['role'] === 'customer' &&
+            password_verify($password, $user['password'])
+        ) {
 
-        $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['name'];
             $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_role'] = $user['role'];
 
             header("Location: index.php");
             exit;
 
         } else {
+
             $error = "Invalid email or password.";
+
         }
+
+        $stmt->close();
     }
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Login - Maan Ghafar Garments</title>
 
     <style>
+
         body {
             font-family: Arial, sans-serif;
             background: #f5f5f5;
@@ -99,7 +125,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             text-align: center;
             margin-bottom: 15px;
         }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .register-link a {
+            color: #111;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
     </style>
+
 </head>
 
 <body>
@@ -109,22 +148,53 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <h1>Customer Login</h1>
 
     <?php if ($error !== ''): ?>
-        <p class="error"><?php echo htmlspecialchars($error); ?></p>
+
+        <p class="error">
+            <?php echo htmlspecialchars($error); ?>
+        </p>
+
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" autocomplete="off">
 
         <label>Email</label>
-        <input type="email" name="email" required>
+
+        <input
+            type="email"
+            name="email"
+            id="login_email"
+            autocomplete="new-email"
+            required
+        >
 
         <label>Password</label>
-        <input type="password" name="password" required>
 
-        <button type="submit">Login</button>
+        <input
+            type="password"
+            name="password"
+            id="login_password"
+            autocomplete="new-password"
+            required
+        >
+
+        <button type="submit">
+            Login
+        </button>
 
     </form>
+
+    <div class="register-link">
+
+        Don't have an account?
+
+        <a href="register.php">
+            Create Account
+        </a>
+
+    </div>
 
 </div>
 
 </body>
+
 </html>
