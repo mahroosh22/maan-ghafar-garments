@@ -1,3 +1,4 @@
+```php
 <?php
 session_start();
 
@@ -8,24 +9,18 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once "../config/database.php";
 
+$order_id = intval($_GET['id'] ?? 0);
 
-/* =========================
-   GET ORDER ID
-========================= */
-
-$order_id = $_GET['id'] ?? '';
-
-if (empty($order_id)) {
+if ($order_id <= 0) {
     header("Location: orders.php");
     exit;
 }
 
-
 /* =========================
-   ORDER DETAILS
+   ORDER + CUSTOMER
 ========================= */
 
-$stmt = $conn->prepare("
+$order_stmt = $conn->prepare("
     SELECT
         o.order_id,
         o.user_id,
@@ -43,20 +38,16 @@ $stmt = $conn->prepare("
     LIMIT 1
 ");
 
-$stmt->bind_param("s", $order_id);
-$stmt->execute();
+$order_stmt->bind_param("i", $order_id);
+$order_stmt->execute();
 
-$order_result = $stmt->get_result();
+$order_result = $order_stmt->get_result();
 $order = $order_result->fetch_assoc();
 
-$stmt->close();
-
+$order_stmt->close();
 
 if (!$order) {
-    echo "<script>
-        alert('Order not found.');
-        window.location.href = 'orders.php';
-    </script>";
+    header("Location: orders.php");
     exit;
 }
 
@@ -74,18 +65,28 @@ $item_stmt = $conn->prepare("
         p.product_name,
         p.image
     FROM order_items oi
-    LEFT JOIN products p ON oi.product_id = p.product_id
+    LEFT JOIN products p
+        ON oi.product_id = p.product_id
     WHERE oi.order_id = ?
+    ORDER BY oi.order_item_id ASC
 ");
 
-$item_stmt->bind_param("s", $order_id);
+$item_stmt->bind_param("i", $order_id);
 $item_stmt->execute();
 
-$items_result = $item_stmt->get_result();
+$item_result = $item_stmt->get_result();
+
+$items = [];
+
+while ($row = $item_result->fetch_assoc()) {
+    $items[] = $row;
+}
+
+$item_stmt->close();
 
 
 /* =========================
-   PAYMENT DETAILS
+   PAYMENT
 ========================= */
 
 $payment = null;
@@ -103,7 +104,7 @@ $payment_stmt = $conn->prepare("
     LIMIT 1
 ");
 
-$payment_stmt->bind_param("s", $order_id);
+$payment_stmt->bind_param("i", $order_id);
 $payment_stmt->execute();
 
 $payment_result = $payment_stmt->get_result();
@@ -113,7 +114,7 @@ $payment_stmt->close();
 
 
 /* =========================
-   SHIPPING DETAILS
+   SHIPPING
 ========================= */
 
 $shipping = null;
@@ -131,7 +132,7 @@ $shipping_stmt = $conn->prepare("
     LIMIT 1
 ");
 
-$shipping_stmt->bind_param("s", $order_id);
+$shipping_stmt->bind_param("i", $order_id);
 $shipping_stmt->execute();
 
 $shipping_result = $shipping_stmt->get_result();
@@ -150,338 +151,219 @@ $shipping_stmt->close();
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>
-        Order Details - Maan Ghafar Garments
-    </title>
+    <title>Order #<?php echo $order['order_id']; ?> - Admin</title>
 
     <style>
 
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f8;
-            color: #1f2937;
+            font-family: Arial, sans-serif;
+            background: #f5f6fa;
+            color: #222;
         }
-
-
-        /* =========================
-           SIDEBAR
-        ========================= */
 
         .sidebar {
             position: fixed;
             left: 0;
             top: 0;
-            width: 250px;
+            width: 230px;
             height: 100vh;
             background: #111827;
-            padding: 25px 18px;
-            z-index: 999;
+            padding: 25px 15px;
         }
 
-        .logo {
+        .sidebar h2 {
+            color: #fff;
             text-align: center;
-            color: #b8860b;
-            font-size: 20px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            margin-bottom: 40px;
-            line-height: 1.4;
-        }
-
-        .admin-title {
-            text-align: center;
-            color: #ffffff;
-            font-size: 14px;
             margin-bottom: 30px;
         }
 
-        .menu a {
+        .sidebar a {
             display: block;
-            text-decoration: none;
             color: #d1d5db;
-            padding: 14px 16px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-
-        .menu a:hover,
-        .menu a.active {
-            background: #b8860b;
-            color: #ffffff;
-        }
-
-        .logout {
-            position: absolute;
-            bottom: 25px;
-            left: 18px;
-            right: 18px;
-        }
-
-        .logout a {
-            display: block;
-            text-align: center;
             text-decoration: none;
-            color: #ffffff;
-            background: #dc2626;
-            padding: 12px;
+            padding: 13px 15px;
             border-radius: 8px;
+            margin-bottom: 8px;
         }
 
-        .logout a:hover {
-            background: #b91c1c;
+        .sidebar a:hover {
+            background: #374151;
+            color: #fff;
         }
 
-
-        /* =========================
-           MAIN
-        ========================= */
-
-        .main-content {
-            margin-left: 250px;
+        .main {
+            margin-left: 230px;
             padding: 30px;
         }
 
-
         .topbar {
-            background: #ffffff;
-            padding: 22px 25px;
-            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 25px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            gap: 15px;
         }
 
         .topbar h1 {
             font-size: 28px;
-            color: #111827;
-            margin-bottom: 6px;
         }
-
-        .topbar p {
-            color: #6b7280;
-        }
-
-
-        /* =========================
-           BACK BUTTON
-        ========================= */
 
         .back-btn {
-            display: inline-block;
             background: #111827;
-            color: #ffffff;
+            color: white;
             text-decoration: none;
-            padding: 10px 16px;
+            padding: 10px 18px;
             border-radius: 7px;
-            margin-bottom: 20px;
-            font-size: 14px;
         }
 
         .back-btn:hover {
             background: #374151;
         }
 
-
-        /* =========================
-           ORDER GRID
-        ========================= */
-
-        .order-grid {
+        .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 20px;
         }
 
-
-        .info-box {
-            background: #ffffff;
-            padding: 25px;
+        .card {
+            background: #fff;
             border-radius: 12px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+            padding: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
         }
 
-        .info-box h2 {
-            font-size: 19px;
-            color: #111827;
+        .card h2 {
+            font-size: 20px;
             margin-bottom: 18px;
-            border-bottom: 2px solid #f3f4f6;
+            border-bottom: 1px solid #eee;
             padding-bottom: 12px;
         }
-
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            gap: 20px;
-            padding: 10px 0;
-            border-bottom: 1px solid #f3f4f6;
+            gap: 15px;
+            padding: 9px 0;
+            border-bottom: 1px solid #f1f1f1;
         }
 
         .info-row:last-child {
             border-bottom: none;
         }
 
-        .info-label {
-            color: #6b7280;
-            font-size: 14px;
+        .label {
+            font-weight: bold;
+            color: #555;
         }
 
-        .info-value {
-            color: #111827;
-            font-weight: 600;
-            text-align: right;
-            font-size: 14px;
-        }
-
-
-        /* =========================
-           STATUS
-        ========================= */
-
-        .status-badge {
+        .status {
             display: inline-block;
             padding: 6px 12px;
             border-radius: 20px;
+            background: #eef2ff;
+            color: #3730a3;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: bold;
             text-transform: capitalize;
         }
 
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-processing {
-            background: #cfe2ff;
-            color: #084298;
-        }
-
-        .status-completed {
-            background: #d1e7dd;
-            color: #0f5132;
-        }
-
-        .status-cancelled {
-            background: #f8d7da;
-            color: #842029;
-        }
-
-
-        /* =========================
-           PRODUCTS
-        ========================= */
-
-        .products-box {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+        .products-card {
             margin-bottom: 20px;
         }
 
-        .products-box h2 {
-            font-size: 19px;
-            color: #111827;
-            margin-bottom: 20px;
+        .product {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
         }
 
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        .products-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 650px;
-        }
-
-        .products-table th {
-            background: #f9fafb;
-            color: #374151;
-            text-align: left;
-            padding: 13px;
-            font-size: 14px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .products-table td {
-            padding: 13px;
-            border-bottom: 1px solid #e5e7eb;
-            color: #4b5563;
-            font-size: 14px;
+        .product:last-child {
+            border-bottom: none;
         }
 
         .product-image {
-            width: 55px;
-            height: 65px;
+            width: 75px;
+            height: 75px;
+            border-radius: 8px;
             object-fit: cover;
-            border-radius: 6px;
+            border: 1px solid #ddd;
             background: #f3f4f6;
         }
 
-        .product-name {
-            font-weight: 600;
-            color: #111827;
+        .no-image {
+            width: 75px;
+            height: 75px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #777;
+            font-size: 12px;
+            text-align: center;
         }
 
+        .product-info {
+            flex: 1;
+        }
 
-        /* =========================
-           TOTAL
-        ========================= */
+        .product-info h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .product-info p {
+            color: #666;
+            font-size: 14px;
+            margin: 3px 0;
+        }
+
+        .product-total {
+            font-weight: bold;
+            font-size: 16px;
+        }
 
         .total-box {
             margin-top: 20px;
+            padding-top: 18px;
+            border-top: 2px solid #111827;
             display: flex;
-            justify-content: flex-end;
-        }
-
-        .total {
-            font-size: 22px;
+            justify-content: space-between;
+            font-size: 20px;
             font-weight: bold;
-            color: #b8860b;
         }
 
-
-        /* =========================
-           EMPTY
-        ========================= */
-
-        .empty-message {
-            text-align: center;
-            padding: 30px;
-            color: #6b7280;
+        .empty {
+            color: #777;
+            padding: 15px 0;
         }
-
-
-        /* =========================
-           MOBILE
-        ========================= */
 
         @media (max-width: 900px) {
 
             .sidebar {
-                width: 210px;
+                width: 190px;
             }
 
-            .main-content {
-                margin-left: 210px;
+            .main {
+                margin-left: 190px;
+                padding: 20px;
             }
 
-            .order-grid {
+            .grid {
                 grid-template-columns: 1fr;
             }
-
         }
-
 
         @media (max-width: 650px) {
 
@@ -489,619 +371,512 @@ $shipping_stmt->close();
                 position: relative;
                 width: 100%;
                 height: auto;
-                padding: 20px;
+                padding: 15px;
             }
 
-            .logo {
+            .sidebar h2 {
                 margin-bottom: 15px;
             }
 
-            .admin-title {
-                margin-bottom: 15px;
+            .sidebar a {
+                display: inline-block;
+                margin-right: 5px;
+                margin-bottom: 5px;
+                padding: 9px 12px;
+                font-size: 13px;
             }
 
-            .menu {
-                display: flex;
-                gap: 8px;
-                overflow-x: auto;
-            }
-
-            .menu a {
-                white-space: nowrap;
-            }
-
-            .logout {
-                position: relative;
-                left: auto;
-                right: auto;
-                bottom: auto;
-                margin-top: 15px;
-            }
-
-            .main-content {
+            .main {
                 margin-left: 0;
-                padding: 20px;
+                padding: 15px;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
             }
 
             .topbar h1 {
                 font-size: 23px;
             }
 
-            .info-box,
-            .products-box {
-                padding: 18px;
+            .product {
+                align-items: flex-start;
             }
 
+            .product-image,
+            .no-image {
+                width: 60px;
+                height: 60px;
+            }
+
+            .product-total {
+                font-size: 14px;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 4px;
+            }
         }
 
     </style>
 
 </head>
 
-
 <body>
 
 
-    <!-- =========================
-         SIDEBAR
-    ========================= -->
+<!-- SIDEBAR -->
 
-    <aside class="sidebar">
+<div class="sidebar">
 
-        <div class="logo">
-            MAAN GHAFAR<br>
-            GARMENTS
-        </div>
+    <h2>Maan Ghafar</h2>
 
-        <div class="admin-title">
-            ADMIN PANEL
-        </div>
+    <a href="dashboard.php">Dashboard</a>
 
-        <nav class="menu">
+    <a href="products.php">Products</a>
 
-            <a href="dashboard.php">
-                🏠 Dashboard
-            </a>
+    <a href="orders.php">Orders</a>
 
-            <a href="products.php">
-                📦 Products
-            </a>
+    <a href="customers.php">Customers</a>
 
-            <a href="orders.php" class="active">
-                🛒 Orders
-            </a>
+    <a href="logout.php">Logout</a>
 
-            <a href="customers.php">
-                👥 Customers
-            </a>
-
-        </nav>
-
-        <div class="logout">
-
-            <a href="logout.php">
-                Logout
-            </a>
-
-        </div>
-
-    </aside>
+</div>
 
 
-    <!-- =========================
-         MAIN CONTENT
-    ========================= -->
+<!-- MAIN -->
 
-    <main class="main-content">
+<div class="main">
 
 
-        <div class="topbar">
+    <div class="topbar">
 
-            <h1>
-                Order Details
-            </h1>
-
-            <p>
-                View complete information about this order.
-            </p>
-
-        </div>
-
+        <h1>Order #<?php echo htmlspecialchars($order['order_id']); ?></h1>
 
         <a href="orders.php" class="back-btn">
             ← Back to Orders
         </a>
 
-
-        <!-- =========================
-             ORDER + CUSTOMER INFO
-        ========================= -->
-
-        <div class="order-grid">
+    </div>
 
 
-            <!-- ORDER INFORMATION -->
+    <!-- ORDER + CUSTOMER -->
 
-            <div class="info-box">
-
-                <h2>
-                    Order Information
-                </h2>
-
-                <div class="info-row">
-
-                    <span class="info-label">
-                        Order ID
-                    </span>
-
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['order_id']); ?>
-                    </span>
-
-                </div>
+    <div class="grid">
 
 
-                <div class="info-row">
+        <!-- ORDER INFO -->
 
-                    <span class="info-label">
-                        Date
-                    </span>
+        <div class="card">
 
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['created_at']); ?>
-                    </span>
+            <h2>Order Information</h2>
 
-                </div>
+            <div class="info-row">
 
+                <span class="label">Order ID</span>
 
-                <div class="info-row">
-
-                    <span class="info-label">
-                        Status
-                    </span>
-
-                    <span class="info-value">
-
-                        <span class="status-badge status-<?php echo strtolower($order['status']); ?>">
-
-                            <?php echo htmlspecialchars($order['status']); ?>
-
-                        </span>
-
-                    </span>
-
-                </div>
-
-
-                <div class="info-row">
-
-                    <span class="info-label">
-                        Payment Method
-                    </span>
-
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['payment_method']); ?>
-                    </span>
-
-                </div>
-
-
-                <div class="info-row">
-
-                    <span class="info-label">
-                        Total Amount
-                    </span>
-
-                    <span class="info-value">
-                        Rs. <?php echo htmlspecialchars($order['total_amount']); ?>
-                    </span>
-
-                </div>
+                <span>
+                    #<?php echo htmlspecialchars($order['order_id']); ?>
+                </span>
 
             </div>
 
+            <div class="info-row">
 
-            <!-- CUSTOMER INFORMATION -->
+                <span class="label">Order Date</span>
 
-            <div class="info-box">
+                <span>
+                    <?php echo htmlspecialchars($order['created_at']); ?>
+                </span>
 
-                <h2>
-                    Customer Information
-                </h2>
+            </div>
 
+            <div class="info-row">
 
-                <div class="info-row">
+                <span class="label">Status</span>
 
-                    <span class="info-label">
-                        Name
-                    </span>
+                <span class="status">
+                    <?php echo htmlspecialchars($order['status']); ?>
+                </span>
 
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['customer_name'] ?? 'Not available'); ?>
-                    </span>
+            </div>
 
-                </div>
+            <div class="info-row">
 
+                <span class="label">Payment Method</span>
 
-                <div class="info-row">
+                <span>
+                    <?php echo htmlspecialchars($order['payment_method'] ?? 'N/A'); ?>
+                </span>
 
-                    <span class="info-label">
-                        Email
-                    </span>
+            </div>
 
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['customer_email'] ?? 'Not available'); ?>
-                    </span>
+            <div class="info-row">
 
-                </div>
+                <span class="label">Total Amount</span>
 
-
-                <div class="info-row">
-
-                    <span class="info-label">
-                        Phone
-                    </span>
-
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['customer_phone'] ?? 'Not provided'); ?>
-                    </span>
-
-                </div>
-
-
-                <div class="info-row">
-
-                    <span class="info-label">
-                        Shipping Address
-                    </span>
-
-                    <span class="info-value">
-                        <?php echo htmlspecialchars($order['shipping_address'] ?? 'Not provided'); ?>
-                    </span>
-
-                </div>
+                <strong>
+                    Rs. <?php echo number_format((float)$order['total_amount'], 2); ?>
+                </strong>
 
             </div>
 
         </div>
 
 
-        <!-- =========================
-             ORDER ITEMS
-        ========================= -->
+        <!-- CUSTOMER INFO -->
 
-        <div class="products-box">
+        <div class="card">
 
-            <h2>
-                Ordered Products
-            </h2>
+            <h2>Customer Information</h2>
 
+            <div class="info-row">
 
-            <?php if ($items_result && $items_result->num_rows > 0): ?>
+                <span class="label">Name</span>
 
-                <div class="table-wrapper">
+                <span>
+                    <?php echo htmlspecialchars($order['customer_name'] ?? 'N/A'); ?>
+                </span>
 
-                    <table class="products-table">
+            </div>
 
-                        <thead>
+            <div class="info-row">
 
-                            <tr>
+                <span class="label">Email</span>
 
-                                <th>
-                                    Product
-                                </th>
+                <span>
+                    <?php echo htmlspecialchars($order['customer_email'] ?? 'N/A'); ?>
+                </span>
 
-                                <th>
-                                    Product ID
-                                </th>
+            </div>
 
-                                <th>
-                                    Price
-                                </th>
+            <div class="info-row">
 
-                                <th>
-                                    Quantity
-                                </th>
+                <span class="label">Phone</span>
 
-                                <th>
-                                    Subtotal
-                                </th>
+                <span>
+                    <?php echo htmlspecialchars($order['customer_phone'] ?? 'N/A'); ?>
+                </span>
 
-                            </tr>
+            </div>
 
-                        </thead>
+            <div class="info-row">
 
+                <span class="label">Shipping Address</span>
 
-                        <tbody>
+                <span>
+                    <?php echo nl2br(htmlspecialchars($order['shipping_address'] ?? 'N/A')); ?>
+                </span>
 
+            </div>
 
-                            <?php while ($item = $items_result->fetch_assoc()): ?>
+        </div>
 
-                                <tr>
-
-                                    <td>
-
-                                        <?php if (!empty($item['image'])): ?>
-
-                                            <img
-                                                src="../uploads/<?php echo htmlspecialchars($item['image']); ?>"
-                                                class="product-image"
-                                                alt="Product"
-                                            >
-
-                                        <?php endif; ?>
-
-                                        <div class="product-name">
-
-                                            <?php echo htmlspecialchars(
-                                                $item['product_name'] ?? 'Product unavailable'
-                                            ); ?>
-
-                                        </div>
-
-                                    </td>
+    </div>
 
 
-                                    <td>
-                                        #<?php echo htmlspecialchars($item['product_id']); ?>
-                                    </td>
+    <!-- ORDERED PRODUCTS -->
+
+    <div class="card products-card">
+
+        <h2>Ordered Products</h2>
 
 
-                                    <td>
-                                        Rs. <?php echo htmlspecialchars($item['price']); ?>
-                                    </td>
+        <?php if (count($items) > 0): ?>
+
+            <?php foreach ($items as $item): ?>
+
+                <?php
+
+                $is_deleted = empty($item['product_id']) || empty($item['product_name']);
+
+                $product_name = $is_deleted
+                    ? 'Deleted Product'
+                    : $item['product_name'];
+
+                $subtotal = (float)$item['price'] * (int)$item['quantity'];
+
+                ?>
 
 
-                                    <td>
-                                        <?php echo htmlspecialchars($item['quantity']); ?>
-                                    </td>
+                <div class="product">
 
 
-                                    <td>
+                    <!-- IMAGE -->
 
-                                        Rs.
-                                        <?php
+                    <?php if (!$is_deleted && !empty($item['image'])): ?>
 
-                                        echo htmlspecialchars(
-                                            $item['price'] * $item['quantity']
-                                        );
+                        <img
+                            src="../uploads/products/<?php echo htmlspecialchars($item['image']); ?>"
+                            alt="<?php echo htmlspecialchars($product_name); ?>"
+                            class="product-image"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
 
-                                        ?>
+                        <div class="no-image" style="display:none;">
+                            No Image
+                        </div>
 
-                                    </td>
+                    <?php else: ?>
 
-                                </tr>
+                        <div class="no-image">
+                            Deleted
+                        </div>
 
-                            <?php endwhile; ?>
+                    <?php endif; ?>
 
 
-                        </tbody>
+                    <!-- PRODUCT INFO -->
 
-                    </table>
+                    <div class="product-info">
+
+                        <h3>
+                            <?php echo htmlspecialchars($product_name); ?>
+                        </h3>
+
+
+                        <p>
+
+                            Product ID:
+
+                            <?php if ($is_deleted): ?>
+
+                                <strong>Deleted</strong>
+
+                            <?php else: ?>
+
+                                #<?php echo htmlspecialchars($item['product_id']); ?>
+
+                            <?php endif; ?>
+
+                        </p>
+
+
+                        <p>
+                            Price:
+                            Rs. <?php echo number_format((float)$item['price'], 2); ?>
+                        </p>
+
+
+                        <p>
+                            Quantity:
+                            <?php echo htmlspecialchars($item['quantity']); ?>
+                        </p>
+
+                    </div>
+
+
+                    <!-- SUBTOTAL -->
+
+                    <div class="product-total">
+
+                        Rs. <?php echo number_format($subtotal, 2); ?>
+
+                    </div>
+
+
+                </div>
+
+            <?php endforeach; ?>
+
+
+            <!-- TOTAL -->
+
+            <div class="total-box">
+
+                <span>Total</span>
+
+                <span>
+                    Rs. <?php echo number_format((float)$order['total_amount'], 2); ?>
+                </span>
+
+            </div>
+
+
+        <?php else: ?>
+
+            <p class="empty">
+                No products found for this order.
+            </p>
+
+        <?php endif; ?>
+
+    </div>
+
+
+    <!-- PAYMENT + SHIPPING -->
+
+    <div class="grid">
+
+
+        <!-- PAYMENT -->
+
+        <div class="card">
+
+            <h2>Payment Details</h2>
+
+
+            <?php if ($payment): ?>
+
+                <div class="info-row">
+
+                    <span class="label">Payment Method</span>
+
+                    <span>
+                        <?php echo htmlspecialchars($payment['payment_method'] ?? 'N/A'); ?>
+                    </span>
 
                 </div>
 
 
-                <div class="total-box">
+                <div class="info-row">
 
-                    <div class="total">
+                    <span class="label">Amount</span>
 
-                        Total:
-                        Rs. <?php echo htmlspecialchars($order['total_amount']); ?>
+                    <span>
+                        Rs. <?php echo number_format((float)$payment['amount'], 2); ?>
+                    </span>
 
-                    </div>
+                </div>
+
+
+                <div class="info-row">
+
+                    <span class="label">Transaction ID</span>
+
+                    <span>
+                        <?php echo htmlspecialchars($payment['transaction_id'] ?? 'N/A'); ?>
+                    </span>
+
+                </div>
+
+
+                <div class="info-row">
+
+                    <span class="label">Payment Status</span>
+
+                    <span class="status">
+                        <?php echo htmlspecialchars($payment['payment_status'] ?? 'N/A'); ?>
+                    </span>
+
+                </div>
+
+
+                <div class="info-row">
+
+                    <span class="label">Paid At</span>
+
+                    <span>
+                        <?php echo htmlspecialchars($payment['paid_at'] ?? 'N/A'); ?>
+                    </span>
 
                 </div>
 
 
             <?php else: ?>
 
-                <div class="empty-message">
-                    No products found for this order.
-                </div>
+                <p class="empty">
+                    No payment record found.
+                </p>
 
             <?php endif; ?>
 
         </div>
 
 
-        <!-- =========================
-             PAYMENT DETAILS
-        ========================= -->
+        <!-- SHIPPING -->
 
-        <div class="order-grid">
+        <div class="card">
 
+            <h2>Shipping Details</h2>
 
-            <div class="info-box">
 
-                <h2>
-                    Payment Details
-                </h2>
+            <?php if ($shipping): ?>
 
+                <div class="info-row">
 
-                <?php if ($payment): ?>
+                    <span class="label">Address</span>
 
-                    <div class="info-row">
+                    <span>
+                        <?php echo nl2br(htmlspecialchars($shipping['shipping_address'] ?? 'N/A')); ?>
+                    </span>
 
-                        <span class="info-label">
-                            Payment Method
-                        </span>
+                </div>
 
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($payment['payment_method']); ?>
-                        </span>
 
-                    </div>
+                <div class="info-row">
 
+                    <span class="label">City</span>
 
-                    <div class="info-row">
+                    <span>
+                        <?php echo htmlspecialchars($shipping['city'] ?? 'N/A'); ?>
+                    </span>
 
-                        <span class="info-label">
-                            Amount
-                        </span>
+                </div>
 
-                        <span class="info-value">
-                            Rs. <?php echo htmlspecialchars($payment['amount']); ?>
-                        </span>
 
-                    </div>
+                <div class="info-row">
 
+                    <span class="label">Postal Code</span>
 
-                    <div class="info-row">
+                    <span>
+                        <?php echo htmlspecialchars($shipping['postal_code'] ?? 'N/A'); ?>
+                    </span>
 
-                        <span class="info-label">
-                            Transaction ID
-                        </span>
+                </div>
 
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($payment['transaction_id'] ?? 'N/A'); ?>
-                        </span>
 
-                    </div>
+                <div class="info-row">
 
+                    <span class="label">Country</span>
 
-                    <div class="info-row">
+                    <span>
+                        <?php echo htmlspecialchars($shipping['country'] ?? 'N/A'); ?>
+                    </span>
 
-                        <span class="info-label">
-                            Payment Status
-                        </span>
+                </div>
 
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($payment['payment_status']); ?>
-                        </span>
 
-                    </div>
+                <div class="info-row">
 
+                    <span class="label">Shipping Status</span>
 
-                    <div class="info-row">
+                    <span class="status">
+                        <?php echo htmlspecialchars($shipping['shipping_status'] ?? 'N/A'); ?>
+                    </span>
 
-                        <span class="info-label">
-                            Paid At
-                        </span>
+                </div>
 
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($payment['paid_at'] ?? 'N/A'); ?>
-                        </span>
 
-                    </div>
+                <div class="info-row">
 
+                    <span class="label">Shipped At</span>
 
-                <?php else: ?>
+                    <span>
+                        <?php echo htmlspecialchars($shipping['shipped_at'] ?? 'N/A'); ?>
+                    </span>
 
-                    <div class="empty-message">
-                        No payment record found.
-                    </div>
+                </div>
 
-                <?php endif; ?>
 
-            </div>
+            <?php else: ?>
 
+                <p class="empty">
+                    No shipping record found.
+                </p>
 
-            <!-- SHIPPING DETAILS -->
-
-            <div class="info-box">
-
-                <h2>
-                    Shipping Details
-                </h2>
-
-
-                <?php if ($shipping): ?>
-
-                    <div class="info-row">
-
-                        <span class="info-label">
-                            Address
-                        </span>
-
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($shipping['shipping_address']); ?>
-                        </span>
-
-                    </div>
-
-
-                    <div class="info-row">
-
-                        <span class="info-label">
-                            City
-                        </span>
-
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($shipping['city']); ?>
-                        </span>
-
-                    </div>
-
-
-                    <div class="info-row">
-
-                        <span class="info-label">
-                            Postal Code
-                        </span>
-
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($shipping['postal_code'] ?? 'N/A'); ?>
-                        </span>
-
-                    </div>
-
-
-                    <div class="info-row">
-
-                        <span class="info-label">
-                            Country
-                        </span>
-
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($shipping['country'] ?? 'N/A'); ?>
-                        </span>
-
-                    </div>
-
-
-                    <div class="info-row">
-
-                        <span class="info-label">
-                            Shipping Status
-                        </span>
-
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($shipping['shipping_status']); ?>
-                        </span>
-
-                    </div>
-
-
-                    <div class="info-row">
-
-                        <span class="info-label">
-                            Shipped At
-                        </span>
-
-                        <span class="info-value">
-                            <?php echo htmlspecialchars($shipping['shipped_at'] ?? 'Not shipped'); ?>
-                        </span>
-
-                    </div>
-
-
-                <?php else: ?>
-
-                    <div class="empty-message">
-                        No shipping record found.
-                    </div>
-
-                <?php endif; ?>
-
-            </div>
+            <?php endif; ?>
 
         </div>
 
+    </div>
 
-    </main>
 
+</div>
 
 </body>
 
 </html>
+```
