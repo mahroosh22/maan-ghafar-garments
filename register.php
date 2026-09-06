@@ -1,5 +1,5 @@
-
 <?php
+
 session_start();
 
 require_once "config/database.php";
@@ -7,94 +7,208 @@ require_once "config/database.php";
 $error = "";
 $success = "";
 
+
+/* =========================================
+   CSRF TOKEN
+========================================= */
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
+/* =========================================
+   REGISTER
+========================================= */
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $posted_token = $_POST['csrf_token'] ?? '';
 
-    if ($name === '' || $email === '' || $password === '') {
+    if (
+        empty($posted_token) ||
+        !hash_equals($csrf_token, $posted_token)
+    ) {
 
-        $error = "Please fill all fields.";
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $error = "Please enter a valid email address.";
-
-    } elseif (strlen($password) < 6) {
-
-        $error = "Password must be at least 6 characters.";
+        $error = "Invalid security token. Please try again.";
 
     } else {
 
-        /* =========================
-           CHECK EMAIL
-        ========================= */
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-        $stmt = $conn->prepare("
-            SELECT id
-            FROM users
-            WHERE email = ?
-            LIMIT 1
-        ");
 
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
+        /* =========================================
+           VALIDATION
+        ========================================= */
 
-        $result = $stmt->get_result();
+        if (
+            $name === '' ||
+            $email === '' ||
+            $password === ''
+        ) {
 
-        if ($result->num_rows > 0) {
+            $error = "Please fill all fields.";
 
-            $error = "Email already registered.";
+        } elseif (mb_strlen($name) > 100) {
 
-            $stmt->close();
+            $error = "Name is too long.";
+
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+            $error = "Please enter a valid email address.";
+
+        } elseif (strlen($email) > 150) {
+
+            $error = "Email address is too long.";
+
+        } elseif (strlen($password) < 6) {
+
+            $error = "Password must be at least 6 characters.";
 
         } else {
 
-            $stmt->close();
 
-            /* =========================
-               HASH PASSWORD
-            ========================= */
-
-            $hashed_password = password_hash(
-                $password,
-                PASSWORD_DEFAULT
-            );
-
-
-            /* =========================
-               CREATE CUSTOMER ACCOUNT
-            ========================= */
+            /* =========================================
+               CHECK EMAIL
+            ========================================= */
 
             $stmt = $conn->prepare("
-                INSERT INTO users
-                (name, email, password, role)
-                VALUES (?, ?, ?, 'customer')
+                SELECT id
+                FROM users
+                WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
+                LIMIT 1
             ");
 
-            $stmt->bind_param(
-                "sss",
-                $name,
-                $email,
-                $hashed_password
-            );
 
+            if (!$stmt) {
 
-            if ($stmt->execute()) {
-
-                $success = "Registration successful! You can now login.";
+                $error = "Unable to process registration.";
 
             } else {
 
-                $error = "Registration failed. Please try again.";
+                $stmt->bind_param(
+                    "s",
+                    $email
+                );
 
+
+                if (!$stmt->execute()) {
+
+                    $error =
+                        "Unable to process registration.";
+
+                    $stmt->close();
+
+                } else {
+
+                    $result = $stmt->get_result();
+
+
+                    if ($result->num_rows > 0) {
+
+                        $error =
+                            "Email already registered.";
+
+                        $stmt->close();
+
+                    } else {
+
+                        $stmt->close();
+
+
+                        /* =========================================
+                           HASH PASSWORD
+                        ========================================= */
+
+                        $hashed_password = password_hash(
+                            $password,
+                            PASSWORD_DEFAULT
+                        );
+
+
+                        if ($hashed_password === false) {
+
+                            $error =
+                                "Unable to create account.";
+
+                        } else {
+
+
+                            /* =========================================
+                               CREATE CUSTOMER ACCOUNT
+                            ========================================= */
+
+                            $stmt = $conn->prepare("
+                                INSERT INTO users
+                                (
+                                    name,
+                                    email,
+                                    password,
+                                    role
+                                )
+                                VALUES
+                                (?, ?, ?, 'customer')
+                            ");
+
+
+                            if (!$stmt) {
+
+                                $error =
+                                    "Unable to create account.";
+
+                            } else {
+
+                                $stmt->bind_param(
+                                    "sss",
+                                    $name,
+                                    $email,
+                                    $hashed_password
+                                );
+
+
+                                if ($stmt->execute()) {
+
+                                    $success =
+                                        "Registration successful! You can now login.";
+
+                                } else {
+
+                                    /*
+                                        Handle duplicate email
+                                        safely in case another
+                                        registration happens at
+                                        the same time.
+                                    */
+
+                                    if (
+                                        $conn->errno === 1062
+                                    ) {
+
+                                        $error =
+                                            "Email already registered.";
+
+                                    } else {
+
+                                        $error =
+                                            "Registration failed. Please try again.";
+                                    }
+                                }
+
+
+                                $stmt->close();
+                            }
+                        }
+                    }
+                }
             }
-
-            $stmt->close();
         }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -203,7 +317,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php if ($error !== ''): ?>
 
         <p class="error">
-            <?php echo htmlspecialchars($error); ?>
+
+            <?php
+            echo htmlspecialchars(
+                $error,
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            ?>
+
         </p>
 
     <?php endif; ?>
@@ -212,44 +334,76 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php if ($success !== ''): ?>
 
         <p class="success">
-            <?php echo htmlspecialchars($success); ?>
+
+            <?php
+            echo htmlspecialchars(
+                $success,
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            ?>
+
         </p>
 
     <?php endif; ?>
 
 
-    <form method="POST">
+    <form
+        method="POST"
+        autocomplete="off"
+    >
 
-        <label>
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?php
+                echo htmlspecialchars(
+                    $csrf_token,
+                    ENT_QUOTES,
+                    'UTF-8'
+                );
+            ?>"
+        >
+
+
+        <label for="register_name">
             Name
         </label>
 
         <input
             type="text"
             name="name"
+            id="register_name"
+            maxlength="100"
+            autocomplete="name"
             required
         >
 
 
-        <label>
+        <label for="register_email">
             Email
         </label>
 
         <input
             type="email"
             name="email"
+            id="register_email"
+            maxlength="150"
+            autocomplete="email"
             required
         >
 
 
-        <label>
+        <label for="register_password">
             Password
         </label>
 
         <input
             type="password"
             name="password"
+            id="register_password"
             minlength="6"
+            autocomplete="new-password"
             required
         >
 

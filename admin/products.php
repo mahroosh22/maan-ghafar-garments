@@ -1,5 +1,5 @@
-
 <?php
+
 session_start();
 
 if (!isset($_SESSION['admin_id'])) {
@@ -14,85 +14,143 @@ $error = "";
 
 
 /* =========================================================
+   SAFE OUTPUT
+========================================================= */
+
+function e($value)
+{
+    return htmlspecialchars(
+        (string) $value,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
+
+
+/* =========================================================
+   IMAGE SETTINGS
+========================================================= */
+
+$allowed_mime_types = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+];
+
+$allowed_extensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp"
+];
+
+$max_image_size = 5 * 1024 * 1024;
+
+
+/* =========================================================
    DELETE PRODUCT
-   IMPORTANT:
-   order_items.product_id must be NULLABLE
-   and FK should use ON DELETE SET NULL.
-   This keeps old order history safe.
 ========================================================= */
 
 if (isset($_GET['delete'])) {
 
-    $product_id = intval($_GET['delete']);
+    $product_id = filter_var(
+        $_GET['delete'],
+        FILTER_VALIDATE_INT
+    );
 
-    if ($product_id > 0) {
+    if (!$product_id || $product_id <= 0) {
 
-        /* GET PRODUCT IMAGE */
+        $error = "Invalid product.";
 
-        $stmt = $conn->prepare(
-            "SELECT image FROM products WHERE product_id = ?"
-        );
+    } else {
 
-        $stmt->bind_param("i", $product_id);
-        $stmt->execute();
+        $stmt = $conn->prepare("
+            SELECT image
+            FROM products
+            WHERE product_id = ?
+            LIMIT 1
+        ");
 
-        $result = $stmt->get_result();
-        $product = $result->fetch_assoc();
+        if (!$stmt) {
 
-        $stmt->close();
-
-
-        if ($product) {
-
-            /* DELETE PRODUCT */
-
-            $stmt = $conn->prepare(
-                "DELETE FROM products WHERE product_id = ?"
-            );
-
-            $stmt->bind_param("i", $product_id);
-
-            if ($stmt->execute()) {
-
-                /*
-                 * Because order_items.product_id is configured
-                 * with ON DELETE SET NULL, old orders remain safe.
-                 */
-
-                /* DELETE PRODUCT IMAGE */
-
-                if (!empty($product['image'])) {
-
-                    $image_path =
-                        "../uploads/products/" .
-                        $product['image'];
-
-                    if (file_exists($image_path)) {
-                        unlink($image_path);
-                    }
-                }
-
-                $stmt->close();
-
-                header(
-                    "Location: products.php?deleted=1"
-                );
-
-                exit;
-
-            } else {
-
-                $error =
-                    "Product could not be deleted. " .
-                    "Please make sure the order_items foreign key " .
-                    "uses ON DELETE SET NULL.";
-
-                $stmt->close();
-            }
+            $error = "Unable to find product.";
 
         } else {
 
-            $error = "Product not found.";
+            $stmt->bind_param(
+                "i",
+                $product_id
+            );
+
+            if (!$stmt->execute()) {
+
+                $error = "Unable to find product.";
+                $stmt->close();
+
+            } else {
+
+                $result = $stmt->get_result();
+                $product = $result->fetch_assoc();
+
+                $stmt->close();
+
+                if (!$product) {
+
+                    $error = "Product not found.";
+
+                } else {
+
+                    $stmt = $conn->prepare("
+                        DELETE FROM products
+                        WHERE product_id = ?
+                    ");
+
+                    if (!$stmt) {
+
+                        $error =
+                            "Product could not be deleted.";
+
+                    } else {
+
+                        $stmt->bind_param(
+                            "i",
+                            $product_id
+                        );
+
+                        if ($stmt->execute()) {
+
+                            $stmt->close();
+
+                            if (!empty($product['image'])) {
+
+                                $image_path =
+                                    "../uploads/products/" .
+                                    basename(
+                                        $product['image']
+                                    );
+
+                                if (is_file($image_path)) {
+                                    @unlink($image_path);
+                                }
+                            }
+
+                            header(
+                                "Location: products.php?deleted=1"
+                            );
+
+                            exit;
+
+                        } else {
+
+                            $error =
+                                "Product could not be deleted. " .
+                                "Please check the product order relationship.";
+
+                            $stmt->close();
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -102,10 +160,99 @@ if (isset($_GET['delete'])) {
    SUCCESS MESSAGE AFTER DELETE
 ========================================================= */
 
-if (isset($_GET['deleted'])) {
+if (
+    isset($_GET['deleted']) &&
+    $error === ""
+) {
 
     $message =
         "Product deleted successfully! Old orders are safe.";
+}
+
+
+/* =========================================================
+   LOAD CATEGORIES
+========================================================= */
+
+$categories = [];
+
+$category_result = $conn->query("
+    SELECT
+        category_id,
+        category_name,
+        description
+    FROM category
+    ORDER BY category_name ASC
+");
+
+if ($category_result) {
+
+    while (
+        $category =
+            $category_result->fetch_assoc()
+    ) {
+
+        $categories[] = $category;
+    }
+}
+
+
+/* =========================================================
+   CATEGORY FILTER
+========================================================= */
+
+$selected_category = filter_var(
+    $_GET['category'] ?? 0,
+    FILTER_VALIDATE_INT
+);
+
+if (
+    $selected_category === false ||
+    $selected_category < 1
+) {
+
+    $selected_category = 0;
+}
+
+
+$selected_category_name = "";
+
+
+/* Get selected category name */
+
+if ($selected_category > 0) {
+
+    $stmt = $conn->prepare("
+        SELECT category_name
+        FROM category
+        WHERE category_id = ?
+        LIMIT 1
+    ");
+
+    if ($stmt) {
+
+        $stmt->bind_param(
+            "i",
+            $selected_category
+        );
+
+        if ($stmt->execute()) {
+
+            $result =
+                $stmt->get_result();
+
+            $row =
+                $result->fetch_assoc();
+
+            if ($row) {
+
+                $selected_category_name =
+                    $row['category_name'];
+            }
+        }
+
+        $stmt->close();
+    }
 }
 
 
@@ -117,29 +264,57 @@ $edit_product = null;
 
 if (isset($_GET['edit'])) {
 
-    $edit_id = intval($_GET['edit']);
+    $edit_id = filter_var(
+        $_GET['edit'],
+        FILTER_VALIDATE_INT
+    );
 
-    if ($edit_id > 0) {
+    if (!$edit_id || $edit_id <= 0) {
 
-        $stmt = $conn->prepare(
-            "SELECT *
-             FROM products
-             WHERE product_id = ?"
-        );
+        $error = "Invalid product.";
 
-        $stmt->bind_param("i", $edit_id);
-        $stmt->execute();
+    } else {
 
-        $result = $stmt->get_result();
+        $stmt = $conn->prepare("
+            SELECT *
+            FROM products
+            WHERE product_id = ?
+            LIMIT 1
+        ");
 
-        $edit_product = $result->fetch_assoc();
-
-        $stmt->close();
-
-        if (!$edit_product) {
+        if (!$stmt) {
 
             $error =
-                "Product not found.";
+                "Unable to load product.";
+
+        } else {
+
+            $stmt->bind_param(
+                "i",
+                $edit_id
+            );
+
+            if (!$stmt->execute()) {
+
+                $error =
+                    "Unable to load product.";
+
+            } else {
+
+                $result =
+                    $stmt->get_result();
+
+                $edit_product =
+                    $result->fetch_assoc();
+
+                if (!$edit_product) {
+
+                    $error =
+                        "Product not found.";
+                }
+            }
+
+            $stmt->close();
         }
     }
 }
@@ -154,113 +329,548 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action =
         $_POST['action'] ?? 'add';
 
-    $product_name =
-        trim($_POST['product_name'] ?? '');
-
-    $category_id =
-        intval($_POST['category_id'] ?? 0);
-
-    $description =
-        trim($_POST['description'] ?? '');
-
-    $price =
-        floatval($_POST['price'] ?? 0);
-
-    $stock_quantity =
-        intval($_POST['stock_quantity'] ?? 0);
-
-    $size =
-        trim($_POST['size'] ?? '');
-
-
-    /* VALIDATION */
-
     if (
-        $product_name === "" ||
-        $category_id <= 0 ||
-        $description === "" ||
-        $price <= 0 ||
-        $stock_quantity < 0 ||
-        $size === ""
+        $action !== 'add' &&
+        $action !== 'update'
     ) {
 
-        $error =
-            "Please fill all fields correctly.";
+        $error = "Invalid request.";
 
     } else {
 
-
-        /* =====================================================
-           UPDATE PRODUCT
-        ===================================================== */
-
-        if ($action === "update") {
-
-            $product_id =
-                intval($_POST['product_id'] ?? 0);
-
-
-            $stmt = $conn->prepare(
-                "SELECT image
-                 FROM products
-                 WHERE product_id = ?"
+        $product_name =
+            trim(
+                $_POST['product_name'] ?? ''
             );
 
-            $stmt->bind_param(
-                "i",
-                $product_id
+        $category_id =
+            filter_var(
+                $_POST['category_id'] ?? 0,
+                FILTER_VALIDATE_INT
             );
 
-            $stmt->execute();
+        $description =
+            trim(
+                $_POST['description'] ?? ''
+            );
 
-            $result =
-                $stmt->get_result();
+        $price_raw =
+            trim(
+                $_POST['price'] ?? ''
+            );
 
-            $old_product =
-                $result->fetch_assoc();
+        $stock_raw =
+            trim(
+                $_POST['stock_quantity'] ?? ''
+            );
 
-            $stmt->close();
+        $size =
+            trim(
+                $_POST['size'] ?? ''
+            );
 
 
-            if (!$old_product) {
+        /* =================================================
+           VALIDATE BASIC VALUES
+        ================================================= */
+
+        $price = is_numeric($price_raw)
+            ? (float) $price_raw
+            : 0;
+
+        $stock_quantity = filter_var(
+            $stock_raw,
+            FILTER_VALIDATE_INT
+        );
+
+        if ($stock_quantity === false) {
+            $stock_quantity = -1;
+        }
+
+
+        if (
+            $product_name === "" ||
+            mb_strlen($product_name) > 150 ||
+            !$category_id ||
+            $category_id <= 0 ||
+            $description === "" ||
+            mb_strlen($description) > 5000 ||
+            $price <= 0 ||
+            $stock_quantity < 0 ||
+            $size === "" ||
+            mb_strlen($size) > 100
+        ) {
+
+            $error =
+                "Please fill all fields correctly.";
+
+        } else {
+
+
+            /* =================================================
+               CHECK CATEGORY EXISTS
+            ================================================= */
+
+            $stmt = $conn->prepare("
+                SELECT category_id
+                FROM category
+                WHERE category_id = ?
+                LIMIT 1
+            ");
+
+            if (!$stmt) {
 
                 $error =
-                    "Product not found.";
+                    "Unable to verify category.";
 
             } else {
 
-                $image_name =
-                    $old_product['image'];
+                $stmt->bind_param(
+                    "i",
+                    $category_id
+                );
+
+                if (!$stmt->execute()) {
+
+                    $error =
+                        "Unable to verify category.";
+
+                } else {
+
+                    $category_check =
+                        $stmt->get_result();
+
+                    $category_exists =
+                        $category_check->num_rows === 1;
+
+                    if (!$category_exists) {
+
+                        $error =
+                            "Selected category does not exist.";
+                    }
+                }
+
+                $stmt->close();
+            }
 
 
-                /* NEW IMAGE */
+            /* =================================================
+               UPDATE PRODUCT
+            ================================================= */
+
+            if (
+                $error === "" &&
+                $action === "update"
+            ) {
+
+                $product_id =
+                    filter_var(
+                        $_POST['product_id'] ?? 0,
+                        FILTER_VALIDATE_INT
+                    );
 
                 if (
-                    isset($_FILES['image']) &&
+                    !$product_id ||
+                    $product_id <= 0
+                ) {
+
+                    $error =
+                        "Invalid product.";
+
+                } else {
+
+                    $stmt = $conn->prepare("
+                        SELECT image
+                        FROM products
+                        WHERE product_id = ?
+                        LIMIT 1
+                    ");
+
+                    if (!$stmt) {
+
+                        $error =
+                            "Unable to load product.";
+
+                    } else {
+
+                        $stmt->bind_param(
+                            "i",
+                            $product_id
+                        );
+
+                        if (!$stmt->execute()) {
+
+                            $error =
+                                "Unable to load product.";
+
+                        } else {
+
+                            $result =
+                                $stmt->get_result();
+
+                            $old_product =
+                                $result->fetch_assoc();
+
+                            if (!$old_product) {
+
+                                $error =
+                                    "Product not found.";
+                            }
+                        }
+
+                        $stmt->close();
+                    }
+
+
+                    if ($error === "") {
+
+                        $image_name =
+                            trim(
+                                $old_product['image']
+                                ?? ''
+                            );
+
+                        $new_uploaded_image = false;
+                        $new_image_path = "";
+
+
+                        /* =====================================
+                           NEW IMAGE UPLOAD
+                        ===================================== */
+
+                        if (
+                            isset($_FILES['image']) &&
+                            $_FILES['image']['error'] !==
+                            UPLOAD_ERR_NO_FILE
+                        ) {
+
+                            if (
+                                $_FILES['image']['error'] !==
+                                UPLOAD_ERR_OK
+                            ) {
+
+                                $error =
+                                    "There was a problem uploading the image.";
+
+                            } elseif (
+                                $_FILES['image']['size'] >
+                                $max_image_size
+                            ) {
+
+                                $error =
+                                    "Image size must be 5 MB or less.";
+
+                            } else {
+
+                                $original_name =
+                                    $_FILES['image']['name'];
+
+                                $tmp_name =
+                                    $_FILES['image']['tmp_name'];
+
+                                $extension =
+                                    strtolower(
+                                        pathinfo(
+                                            $original_name,
+                                            PATHINFO_EXTENSION
+                                        )
+                                    );
+
+
+                                if (
+                                    !in_array(
+                                        $extension,
+                                        $allowed_extensions,
+                                        true
+                                    )
+                                ) {
+
+                                    $error =
+                                        "Only JPG, JPEG, PNG and WEBP images are allowed.";
+
+                                } else {
+
+                                    $finfo =
+                                        finfo_open(
+                                            FILEINFO_MIME_TYPE
+                                        );
+
+                                    $mime_type =
+                                        $finfo
+                                            ? finfo_file(
+                                                $finfo,
+                                                $tmp_name
+                                            )
+                                            : false;
+
+                                    if ($finfo) {
+                                        finfo_close($finfo);
+                                    }
+
+
+                                    if (
+                                        !in_array(
+                                            $mime_type,
+                                            $allowed_mime_types,
+                                            true
+                                        )
+                                    ) {
+
+                                        $error =
+                                            "Invalid image file.";
+
+                                    } elseif (
+                                        @getimagesize(
+                                            $tmp_name
+                                        ) === false
+                                    ) {
+
+                                        $error =
+                                            "Uploaded file is not a valid image.";
+
+                                    } else {
+
+                                        $upload_dir =
+                                            "../uploads/products/";
+
+
+                                        if (
+                                            !is_dir(
+                                                $upload_dir
+                                            )
+                                        ) {
+
+                                            if (
+                                                !mkdir(
+                                                    $upload_dir,
+                                                    0755,
+                                                    true
+                                                )
+                                            ) {
+
+                                                $error =
+                                                    "Unable to create image upload directory.";
+                                            }
+                                        }
+
+
+                                        if (
+                                            $error === ""
+                                        ) {
+
+                                            $new_image_name =
+                                                time() .
+                                                "_" .
+                                                bin2hex(
+                                                    random_bytes(8)
+                                                ) .
+                                                "." .
+                                                $extension;
+
+
+                                            $new_image_path =
+                                                $upload_dir .
+                                                $new_image_name;
+
+
+                                            if (
+                                                move_uploaded_file(
+                                                    $tmp_name,
+                                                    $new_image_path
+                                                )
+                                            ) {
+
+                                                $image_name =
+                                                    $new_image_name;
+
+                                                $new_uploaded_image =
+                                                    true;
+
+                                            } else {
+
+                                                $error =
+                                                    "Image upload failed.";
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+                        /* =====================================
+                           UPDATE DATABASE
+                        ===================================== */
+
+                        if (
+                            $error === ""
+                        ) {
+
+                            $stmt = $conn->prepare("
+                                UPDATE products
+                                SET
+                                    product_name = ?,
+                                    category_id = ?,
+                                    description = ?,
+                                    price = ?,
+                                    stock_quantity = ?,
+                                    size = ?,
+                                    image = ?
+                                WHERE product_id = ?
+                            ");
+
+                            if (!$stmt) {
+
+                                $error =
+                                    "Unable to update product.";
+
+                            } else {
+
+                                $stmt->bind_param(
+                                    "sisdissi",
+                                    $product_name,
+                                    $category_id,
+                                    $description,
+                                    $price,
+                                    $stock_quantity,
+                                    $size,
+                                    $image_name,
+                                    $product_id
+                                );
+
+
+                                if (
+                                    $stmt->execute()
+                                ) {
+
+                                    $stmt->close();
+
+
+                                    if (
+                                        $new_uploaded_image &&
+                                        !empty(
+                                            $old_product['image']
+                                        )
+                                    ) {
+
+                                        $old_image_path =
+                                            "../uploads/products/" .
+                                            basename(
+                                                $old_product['image']
+                                            );
+
+                                        if (
+                                            is_file(
+                                                $old_image_path
+                                            )
+                                        ) {
+
+                                            @unlink(
+                                                $old_image_path
+                                            );
+                                        }
+                                    }
+
+
+                                    /*
+                                     * Keep category filter
+                                     * after updating product.
+                                     */
+
+                                    $redirect_url =
+                                        "products.php?updated=1";
+
+                                    if (
+                                        $selected_category > 0
+                                    ) {
+
+                                        $redirect_url .=
+                                            "&category=" .
+                                            $selected_category;
+                                    }
+
+                                    header(
+                                        "Location: " .
+                                        $redirect_url
+                                    );
+
+                                    exit;
+
+                                } else {
+
+                                    if (
+                                        $new_uploaded_image &&
+                                        is_file(
+                                            $new_image_path
+                                        )
+                                    ) {
+
+                                        @unlink(
+                                            $new_image_path
+                                        );
+                                    }
+
+
+                                    $error =
+                                        "Product could not be updated.";
+
+                                    $stmt->close();
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+            /* =================================================
+               ADD PRODUCT
+            ================================================= */
+
+            } elseif (
+                $error === "" &&
+                $action === "add"
+            ) {
+
+                $image_name = "";
+                $image_path = "";
+
+
+                /* =============================================
+                   IMAGE REQUIRED FOR NEW PRODUCT
+                ============================================= */
+
+                if (
+                    !isset($_FILES['image']) ||
                     $_FILES['image']['error'] ===
+                    UPLOAD_ERR_NO_FILE
+                ) {
+
+                    $error =
+                        "Please select a product image.";
+
+                } elseif (
+                    $_FILES['image']['error'] !==
                     UPLOAD_ERR_OK
                 ) {
 
-                    $upload_dir =
-                        "../uploads/products/";
+                    $error =
+                        "There was a problem uploading the image.";
 
+                } elseif (
+                    $_FILES['image']['size'] >
+                    $max_image_size
+                ) {
 
-                    if (!is_dir($upload_dir)) {
+                    $error =
+                        "Image size must be 5 MB or less.";
 
-                        mkdir(
-                            $upload_dir,
-                            0777,
-                            true
-                        );
-                    }
-
+                } else {
 
                     $original_name =
                         $_FILES['image']['name'];
 
                     $tmp_name =
                         $_FILES['image']['tmp_name'];
-
 
                     $extension =
                         strtolower(
@@ -269,14 +879,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                 PATHINFO_EXTENSION
                             )
                         );
-
-
-                    $allowed_extensions = [
-                        "jpg",
-                        "jpeg",
-                        "png",
-                        "webp"
-                    ];
 
 
                     if (
@@ -292,256 +894,199 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                     } else {
 
-                        $new_image_name =
-                            time() .
-                            "_" .
-                            uniqid() .
-                            "." .
-                            $extension;
+                        $finfo =
+                            finfo_open(
+                                FILEINFO_MIME_TYPE
+                            );
 
+                        $mime_type =
+                            $finfo
+                                ? finfo_file(
+                                    $finfo,
+                                    $tmp_name
+                                )
+                                : false;
 
-                        $image_path =
-                            $upload_dir .
-                            $new_image_name;
+                        if ($finfo) {
+                            finfo_close($finfo);
+                        }
 
 
                         if (
-                            move_uploaded_file(
-                                $tmp_name,
-                                $image_path
+                            !in_array(
+                                $mime_type,
+                                $allowed_mime_types,
+                                true
                             )
                         ) {
 
-                            /* DELETE OLD IMAGE */
+                            $error =
+                                "Invalid image file.";
 
-                            if (!empty($image_name)) {
+                        } elseif (
+                            @getimagesize(
+                                $tmp_name
+                            ) === false
+                        ) {
 
-                                $old_image_path =
-                                    $upload_dir .
-                                    $image_name;
+                            $error =
+                                "Uploaded file is not a valid image.";
+
+                        } else {
+
+                            $upload_dir =
+                                "../uploads/products/";
+
+
+                            if (
+                                !is_dir(
+                                    $upload_dir
+                                )
+                            ) {
 
                                 if (
-                                    file_exists(
-                                        $old_image_path
+                                    !mkdir(
+                                        $upload_dir,
+                                        0755,
+                                        true
                                     )
                                 ) {
 
-                                    unlink(
-                                        $old_image_path
-                                    );
+                                    $error =
+                                        "Unable to create image upload directory.";
                                 }
                             }
 
 
-                            $image_name =
-                                $new_image_name;
+                            if (
+                                $error === ""
+                            ) {
 
-                        } else {
+                                $image_name =
+                                    time() .
+                                    "_" .
+                                    bin2hex(
+                                        random_bytes(8)
+                                    ) .
+                                    "." .
+                                    $extension;
 
-                            $error =
-                                "Image upload failed.";
+
+                                $image_path =
+                                    $upload_dir .
+                                    $image_name;
+
+
+                                if (
+                                    !move_uploaded_file(
+                                        $tmp_name,
+                                        $image_path
+                                    )
+                                ) {
+
+                                    $error =
+                                        "Image upload failed.";
+                                }
+                            }
                         }
                     }
                 }
 
 
-                if ($error === "") {
+                /* =============================================
+                   INSERT PRODUCT
+                ============================================= */
 
-                    $stmt = $conn->prepare(
-                        "UPDATE products
-                         SET
-                            product_name = ?,
-                            category_id = ?,
-                            description = ?,
-                            price = ?,
-                            stock_quantity = ?,
-                            size = ?,
-                            image = ?
-                         WHERE product_id = ?"
-                    );
+                if (
+                    $error === ""
+                ) {
 
-
-                    $stmt->bind_param(
-                        "sisdissi",
-                        $product_name,
-                        $category_id,
-                        $description,
-                        $price,
-                        $stock_quantity,
-                        $size,
-                        $image_name,
-                        $product_id
-                    );
+                    $stmt = $conn->prepare("
+                        INSERT INTO products
+                        (
+                            product_name,
+                            category_id,
+                            description,
+                            price,
+                            stock_quantity,
+                            size,
+                            image,
+                            created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                    ");
 
 
-                    if ($stmt->execute()) {
+                    if (!$stmt) {
 
-                        $stmt->close();
-
-                        header(
-                            "Location: products.php?updated=1"
-                        );
-
-                        exit;
+                        $error =
+                            "Unable to add product.";
 
                     } else {
 
-                        $error =
-                            "Database error: " .
-                            $stmt->error;
+                        $stmt->bind_param(
+                            "sisdiss",
+                            $product_name,
+                            $category_id,
+                            $description,
+                            $price,
+                            $stock_quantity,
+                            $size,
+                            $image_name
+                        );
 
-                        $stmt->close();
+
+                        if (
+                            $stmt->execute()
+                        ) {
+
+                            $stmt->close();
+
+                            /*
+                             * Keep category filter
+                             * after adding product.
+                             */
+
+                            $redirect_url =
+                                "products.php?added=1";
+
+                            if (
+                                $selected_category > 0
+                            ) {
+
+                                $redirect_url .=
+                                    "&category=" .
+                                    $selected_category;
+                            }
+
+                            header(
+                                "Location: " .
+                                $redirect_url
+                            );
+
+                            exit;
+
+                        } else {
+
+                            if (
+                                $image_name !== "" &&
+                                is_file(
+                                    $image_path
+                                )
+                            ) {
+
+                                @unlink(
+                                    $image_path
+                                );
+                            }
+
+
+                            $error =
+                                "Product could not be added.";
+
+                            $stmt->close();
+                        }
                     }
-                }
-            }
-
-
-        } else {
-
-
-            /* =================================================
-               ADD PRODUCT
-            ================================================= */
-
-            $image_name = "";
-
-
-            if (
-                isset($_FILES['image']) &&
-                $_FILES['image']['error'] ===
-                UPLOAD_ERR_OK
-            ) {
-
-                $upload_dir =
-                    "../uploads/products/";
-
-
-                if (!is_dir($upload_dir)) {
-
-                    mkdir(
-                        $upload_dir,
-                        0777,
-                        true
-                    );
-                }
-
-
-                $original_name =
-                    $_FILES['image']['name'];
-
-                $tmp_name =
-                    $_FILES['image']['tmp_name'];
-
-
-                $extension =
-                    strtolower(
-                        pathinfo(
-                            $original_name,
-                            PATHINFO_EXTENSION
-                        )
-                    );
-
-
-                $allowed_extensions = [
-                    "jpg",
-                    "jpeg",
-                    "png",
-                    "webp"
-                ];
-
-
-                if (
-                    !in_array(
-                        $extension,
-                        $allowed_extensions,
-                        true
-                    )
-                ) {
-
-                    $error =
-                        "Only JPG, JPEG, PNG and WEBP images are allowed.";
-
-                } else {
-
-                    $image_name =
-                        time() .
-                        "_" .
-                        uniqid() .
-                        "." .
-                        $extension;
-
-
-                    $image_path =
-                        $upload_dir .
-                        $image_name;
-
-
-                    if (
-                        !move_uploaded_file(
-                            $tmp_name,
-                            $image_path
-                        )
-                    ) {
-
-                        $error =
-                            "Image upload failed.";
-                    }
-                }
-
-            } else {
-
-                $error =
-                    "Please select a product image.";
-            }
-
-
-            if ($error === "") {
-
-                $stmt = $conn->prepare(
-                    "INSERT INTO products
-                    (
-                        product_name,
-                        category_id,
-                        description,
-                        price,
-                        stock_quantity,
-                        size,
-                        image,
-                        created_at
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())"
-                );
-
-
-                $stmt->bind_param(
-                    "sisdiss",
-                    $product_name,
-                    $category_id,
-                    $description,
-                    $price,
-                    $stock_quantity,
-                    $size,
-                    $image_name
-                );
-
-
-                if ($stmt->execute()) {
-
-                    $stmt->close();
-
-                    header(
-                        "Location: products.php?added=1"
-                    );
-
-                    exit;
-
-                } else {
-
-                    $error =
-                        "Database error: " .
-                        $stmt->error;
-
-                    $stmt->close();
                 }
             }
         }
@@ -553,17 +1098,44 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
    SUCCESS MESSAGES
 ========================================================= */
 
-if (isset($_GET['added'])) {
+if (
+    isset($_GET['added']) &&
+    $error === ""
+) {
 
     $message =
         "Product added successfully!";
 }
 
 
-if (isset($_GET['updated'])) {
+if (
+    isset($_GET['updated']) &&
+    $error === ""
+) {
 
     $message =
         "Product updated successfully!";
+}
+
+
+/* =========================================================
+   UNREAD MESSAGES
+========================================================= */
+
+$unread_messages = 0;
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM contact_messages
+    WHERE status = 'unread'
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $unread_messages =
+        (int)($row['total'] ?? 0);
 }
 
 
@@ -572,47 +1144,206 @@ if (isset($_GET['updated'])) {
 ========================================================= */
 
 $search =
-    trim($_GET['search'] ?? '');
+    trim(
+        $_GET['search'] ?? ''
+    );
+
+$products = false;
 
 
-if ($search !== "") {
+/*
+ * Category + Search
+ */
+
+if (
+    $selected_category > 0 &&
+    $search !== ""
+) {
 
     $search_value =
         "%" . $search . "%";
 
 
-    $stmt = $conn->prepare(
-        "SELECT *
-         FROM products
-         WHERE
-            product_name LIKE ?
-            OR description LIKE ?
-            OR size LIKE ?
-         ORDER BY product_id DESC"
-    );
+    $stmt = $conn->prepare("
+        SELECT
+            p.*,
+            c.category_name
+        FROM products p
+        LEFT JOIN category c
+            ON p.category_id = c.category_id
+        WHERE
+            p.category_id = ?
+            AND (
+                p.product_name LIKE ?
+                OR p.description LIKE ?
+                OR p.size LIKE ?
+                OR c.category_name LIKE ?
+            )
+        ORDER BY p.product_id DESC
+    ");
 
 
-    $stmt->bind_param(
-        "sss",
-        $search_value,
-        $search_value,
-        $search_value
-    );
+    if ($stmt) {
+
+        $stmt->bind_param(
+            "issss",
+            $selected_category,
+            $search_value,
+            $search_value,
+            $search_value,
+            $search_value
+        );
 
 
-    $stmt->execute();
+        if ($stmt->execute()) {
 
-    $products =
-        $stmt->get_result();
+            $products =
+                $stmt->get_result();
+
+        } else {
+
+            $error =
+                "Unable to load products.";
+        }
+
+        $stmt->close();
+
+    } else {
+
+        $error =
+            "Unable to search products.";
+    }
+
+
+/*
+ * Category only
+ */
+
+} elseif (
+    $selected_category > 0
+) {
+
+    $stmt = $conn->prepare("
+        SELECT
+            p.*,
+            c.category_name
+        FROM products p
+        LEFT JOIN category c
+            ON p.category_id = c.category_id
+        WHERE p.category_id = ?
+        ORDER BY p.product_id DESC
+    ");
+
+
+    if ($stmt) {
+
+        $stmt->bind_param(
+            "i",
+            $selected_category
+        );
+
+
+        if ($stmt->execute()) {
+
+            $products =
+                $stmt->get_result();
+
+        } else {
+
+            $error =
+                "Unable to load category products.";
+        }
+
+        $stmt->close();
+
+    } else {
+
+        $error =
+            "Unable to load category products.";
+    }
+
+
+/*
+ * Search only
+ */
+
+} elseif (
+    $search !== ""
+) {
+
+    $search_value =
+        "%" . $search . "%";
+
+
+    $stmt = $conn->prepare("
+        SELECT
+            p.*,
+            c.category_name
+        FROM products p
+        LEFT JOIN category c
+            ON p.category_id = c.category_id
+        WHERE
+            p.product_name LIKE ?
+            OR p.description LIKE ?
+            OR p.size LIKE ?
+            OR c.category_name LIKE ?
+        ORDER BY p.product_id DESC
+    ");
+
+
+    if ($stmt) {
+
+        $stmt->bind_param(
+            "ssss",
+            $search_value,
+            $search_value,
+            $search_value,
+            $search_value
+        );
+
+
+        if ($stmt->execute()) {
+
+            $products =
+                $stmt->get_result();
+
+        } else {
+
+            $error =
+                "Unable to load products.";
+        }
+
+        $stmt->close();
+
+    } else {
+
+        $error =
+            "Unable to search products.";
+    }
+
+
+/*
+ * All products
+ */
 
 } else {
 
     $products =
-        $conn->query(
-            "SELECT *
-             FROM products
-             ORDER BY product_id DESC"
-        );
+        $conn->query("
+            SELECT
+                p.*,
+                c.category_name
+            FROM products p
+            LEFT JOIN category c
+                ON p.category_id = c.category_id
+            ORDER BY p.product_id DESC
+        ");
+
+    if (!$products) {
+
+        $error =
+            "Unable to load products.";
+    }
 }
 
 ?>
@@ -666,7 +1397,7 @@ if ($search !== "") {
 
             padding: 25px 18px;
 
-            z-index: 999;
+            z-index: 9999;
         }
 
 
@@ -699,8 +1430,18 @@ if ($search !== "") {
         }
 
 
+        .menu {
+            position: relative;
+            z-index: 10000;
+        }
+
+
         .menu a {
-            display: block;
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
 
             text-decoration: none;
 
@@ -713,6 +1454,10 @@ if ($search !== "") {
             border-radius: 8px;
 
             transition: 0.3s;
+
+            position: relative;
+
+            z-index: 10001;
         }
 
 
@@ -721,6 +1466,38 @@ if ($search !== "") {
             background: #b8860b;
 
             color: #ffffff;
+        }
+
+
+        .menu-left {
+            display: flex;
+
+            align-items: center;
+        }
+
+
+        .menu-badge {
+            background: #dc2626;
+
+            color: #ffffff;
+
+            min-width: 22px;
+
+            height: 22px;
+
+            padding: 0 6px;
+
+            border-radius: 20px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 12px;
+
+            font-weight: bold;
         }
 
 
@@ -892,7 +1669,8 @@ if ($search !== "") {
 
 
         .form-group input,
-        .form-group textarea {
+        .form-group textarea,
+        .form-group select {
             width: 100%;
 
             padding: 13px 14px;
@@ -910,7 +1688,8 @@ if ($search !== "") {
 
 
         .form-group input:focus,
-        .form-group textarea:focus {
+        .form-group textarea:focus,
+        .form-group select:focus {
             border-color: #b8860b;
 
             background: #ffffff;
@@ -926,6 +1705,15 @@ if ($search !== "") {
 
         .form-group input[type="file"] {
             background: #ffffff;
+        }
+
+
+        .category-help {
+            margin-top: 7px;
+
+            color: #6b7280;
+
+            font-size: 12px;
         }
 
 
@@ -979,7 +1767,7 @@ if ($search !== "") {
 
 
         /* =========================
-           PRODUCTS SECTION
+           PRODUCTS
         ========================= */
 
         .products-box {
@@ -1013,6 +1801,75 @@ if ($search !== "") {
         }
 
 
+        .category-title {
+            margin-top: 6px;
+
+            color: #b8860b;
+
+            font-size: 14px;
+
+            font-weight: bold;
+        }
+
+
+        /* =========================
+           CATEGORY FILTER
+        ========================= */
+
+        .category-filter {
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+            margin-bottom: 22px;
+
+            padding: 15px;
+
+            background: #f9fafb;
+
+            border-radius: 10px;
+
+            border: 1px solid #e5e7eb;
+        }
+
+
+        .category-filter-btn {
+            display: inline-block;
+
+            text-decoration: none;
+
+            padding: 9px 14px;
+
+            border-radius: 7px;
+
+            background: #e5e7eb;
+
+            color: #374151;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            transition: 0.3s;
+        }
+
+
+        .category-filter-btn:hover {
+            background: #d1d5db;
+
+            color: #111827;
+        }
+
+
+        .category-filter-btn.active {
+            background: #b8860b;
+
+            color: #ffffff;
+        }
+
+
         .search-form {
             display: flex;
 
@@ -1043,6 +1900,30 @@ if ($search !== "") {
             border-radius: 7px;
 
             cursor: pointer;
+        }
+
+
+        .clear-filter {
+            display: inline-block;
+
+            text-decoration: none;
+
+            padding: 9px 14px;
+
+            border-radius: 7px;
+
+            background: #dc2626;
+
+            color: #ffffff;
+
+            font-size: 13px;
+
+            font-weight: 600;
+        }
+
+
+        .clear-filter:hover {
+            background: #b91c1c;
         }
 
 
@@ -1105,11 +1986,13 @@ if ($search !== "") {
 
             height: 65px;
 
-            object-fit: cover;
+            object-fit: contain;
 
             border-radius: 8px;
 
             border: 1px solid #eeeeee;
+
+            background: #f8f8f8;
         }
 
 
@@ -1134,6 +2017,10 @@ if ($search !== "") {
         }
 
 
+        /* =========================
+           STOCK
+        ========================= */
+
         .stock {
             font-weight: bold;
         }
@@ -1155,7 +2042,7 @@ if ($search !== "") {
 
 
         /* =========================
-           ACTION BUTTONS
+           ACTIONS
         ========================= */
 
         .edit-btn,
@@ -1293,6 +2180,19 @@ if ($search !== "") {
             .search-form input {
                 flex: 1;
             }
+
+
+            .category-filter {
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+
+            .category-filter-btn,
+            .clear-filter {
+                text-align: center;
+            }
         }
 
 
@@ -1322,9 +2222,9 @@ if ($search !== "") {
 <body>
 
 
-<!-- =====================================================
+<!-- =========================
      SIDEBAR
-===================================================== -->
+========================= -->
 
 <aside class="sidebar">
 
@@ -1346,22 +2246,70 @@ if ($search !== "") {
     <nav class="menu">
 
         <a href="dashboard.php">
-            🏠 Dashboard
+
+            <span class="menu-left">
+                🏠 Dashboard
+            </span>
+
         </a>
 
 
-        <a href="products.php" class="active">
-            📦 Products
+        <a
+            href="products.php"
+            class="active"
+        >
+
+            <span class="menu-left">
+                📦 Products
+            </span>
+
+        </a>
+
+
+        <a href="categories.php">
+
+            <span class="menu-left">
+                📂 Categories
+            </span>
+
         </a>
 
 
         <a href="orders.php">
-            🛒 Orders
+
+            <span class="menu-left">
+                🛒 Orders
+            </span>
+
         </a>
 
 
         <a href="customers.php">
-            👥 Customers
+
+            <span class="menu-left">
+                👥 Customers
+            </span>
+
+        </a>
+
+
+        <a href="messages.php">
+
+            <span class="menu-left">
+                💬 Messages
+            </span>
+
+
+            <?php if ($unread_messages > 0): ?>
+
+                <span class="menu-badge">
+
+                    <?= $unread_messages ?>
+
+                </span>
+
+            <?php endif; ?>
+
         </a>
 
     </nav>
@@ -1378,9 +2326,9 @@ if ($search !== "") {
 </aside>
 
 
-<!-- =====================================================
-     MAIN CONTENT
-===================================================== -->
+<!-- =========================
+     MAIN
+========================= -->
 
 <main class="main-content">
 
@@ -1390,7 +2338,6 @@ if ($search !== "") {
         <h1>
             Products
         </h1>
-
 
         <p>
             Manage Maan Ghafar Garments products
@@ -1402,11 +2349,7 @@ if ($search !== "") {
     <?php if ($message !== ""): ?>
 
         <div class="success-message">
-
-            <?php
-            echo htmlspecialchars($message);
-            ?>
-
+            <?= e($message) ?>
         </div>
 
     <?php endif; ?>
@@ -1415,27 +2358,23 @@ if ($search !== "") {
     <?php if ($error !== ""): ?>
 
         <div class="error-message">
-
-            <?php
-            echo htmlspecialchars($error);
-            ?>
-
+            <?= e($error) ?>
         </div>
 
     <?php endif; ?>
 
 
-    <!-- =================================================
-         ADD / EDIT FORM
-    ================================================= -->
+    <!-- =========================
+         ADD / EDIT PRODUCT
+    ========================= -->
 
     <div class="form-box">
 
 
         <h2 class="form-title">
 
-            <?php
-            echo $edit_product
+            <?=
+            $edit_product
                 ? "Edit Product"
                 : "Add New Product";
             ?>
@@ -1452,8 +2391,8 @@ if ($search !== "") {
             <input
                 type="hidden"
                 name="action"
-                value="<?php
-                echo $edit_product
+                value="<?=
+                $edit_product
                     ? 'update'
                     : 'add';
                 ?>"
@@ -1465,8 +2404,9 @@ if ($search !== "") {
                 <input
                     type="hidden"
                     name="product_id"
-                    value="<?php
-                    echo $edit_product['product_id'];
+                    value="<?=
+                    (int)
+                    $edit_product['product_id'];
                     ?>"
                 >
 
@@ -1485,13 +2425,15 @@ if ($search !== "") {
                     <input
                         type="text"
                         name="product_name"
-                        value="<?php
-                        echo htmlspecialchars(
-                            $edit_product['product_name']
-                            ?? ''
+                        value="<?=
+                        e(
+                            $edit_product[
+                                'product_name'
+                            ] ?? ''
                         );
                         ?>"
                         placeholder="Enter product name"
+                        maxlength="150"
                         required
                     >
 
@@ -1501,21 +2443,77 @@ if ($search !== "") {
                 <div class="form-group">
 
                     <label>
-                        Category ID
+                        Category
                     </label>
 
-                    <input
-                        type="number"
+                    <select
                         name="category_id"
-                        value="<?php
-                        echo htmlspecialchars(
-                            $edit_product['category_id']
-                            ?? ''
-                        );
-                        ?>"
-                        placeholder="Enter category ID"
                         required
                     >
+
+                        <option value="">
+                            Select Category
+                        </option>
+
+
+                        <?php foreach (
+                            $categories as $category
+                        ): ?>
+
+                            <option
+                                value="<?=
+                                (int)
+                                $category[
+                                    'category_id'
+                                ];
+                                ?>"
+                                <?php
+                                if (
+                                    $edit_product &&
+                                    (int)
+                                    $edit_product[
+                                        'category_id'
+                                    ] ===
+                                    (int)
+                                    $category[
+                                        'category_id'
+                                    ]
+                                ) {
+                                    echo "selected";
+                                } elseif (
+                                    !$edit_product &&
+                                    $selected_category > 0 &&
+                                    $selected_category ===
+                                    (int)
+                                    $category[
+                                        'category_id'
+                                    ]
+                                ) {
+                                    echo "selected";
+                                }
+                                ?>
+                            >
+
+                                <?=
+                                e(
+                                    $category[
+                                        'category_name'
+                                    ]
+                                );
+                                ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+
+                    <small class="category-help">
+
+                        Select a category from the database.
+
+                    </small>
 
                 </div>
 
@@ -1528,12 +2526,14 @@ if ($search !== "") {
 
                     <textarea
                         name="description"
+                        maxlength="5000"
                         placeholder="Enter product description"
                         required
-                    ><?php
-                    echo htmlspecialchars(
-                        $edit_product['description']
-                        ?? ''
+                    ><?=
+                    e(
+                        $edit_product[
+                            'description'
+                        ] ?? ''
                     );
                     ?></textarea>
 
@@ -1550,11 +2550,12 @@ if ($search !== "") {
                         type="number"
                         name="price"
                         step="0.01"
-                        min="0"
-                        value="<?php
-                        echo htmlspecialchars(
-                            $edit_product['price']
-                            ?? ''
+                        min="0.01"
+                        value="<?=
+                        e(
+                            $edit_product[
+                                'price'
+                            ] ?? ''
                         );
                         ?>"
                         placeholder="3500"
@@ -1574,13 +2575,14 @@ if ($search !== "") {
                         type="number"
                         name="stock_quantity"
                         min="0"
-                        value="<?php
-                        echo htmlspecialchars(
-                            $edit_product['stock_quantity']
-                            ?? ''
+                        value="<?=
+                        e(
+                            $edit_product[
+                                'stock_quantity'
+                            ] ?? ''
                         );
                         ?>"
-                        placeholder="10"
+                        placeholder="100"
                         required
                     >
 
@@ -1596,13 +2598,15 @@ if ($search !== "") {
                     <input
                         type="text"
                         name="size"
-                        value="<?php
-                        echo htmlspecialchars(
-                            $edit_product['size']
-                            ?? ''
+                        value="<?=
+                        e(
+                            $edit_product[
+                                'size'
+                            ] ?? ''
                         );
                         ?>"
                         placeholder="S, M, L, XL"
+                        maxlength="100"
                         required
                     >
 
@@ -1619,17 +2623,26 @@ if ($search !== "") {
                         type="file"
                         name="image"
                         accept="image/jpeg,image/png,image/webp"
-                        <?php
-                        echo $edit_product
+                        <?=
+                        $edit_product
                             ? ''
                             : 'required';
                         ?>
                     >
 
 
+                    <small class="category-help">
+
+                        JPG, JPEG, PNG or WEBP — Maximum 5 MB.
+
+                    </small>
+
+
                     <?php if (
                         $edit_product &&
-                        !empty($edit_product['image'])
+                        !empty(
+                            $edit_product['image']
+                        )
                     ): ?>
 
                         <small
@@ -1640,9 +2653,12 @@ if ($search !== "") {
                         >
 
                             Current image:
-                            <?php
-                            echo htmlspecialchars(
-                                $edit_product['image']
+
+                            <?=
+                            e(
+                                $edit_product[
+                                    'image'
+                                ]
                             );
                             ?>
 
@@ -1661,8 +2677,8 @@ if ($search !== "") {
                 class="submit-btn"
             >
 
-                <?php
-                echo $edit_product
+                <?=
+                $edit_product
                     ? "Update Product"
                     : "+ Add Product";
                 ?>
@@ -1673,7 +2689,11 @@ if ($search !== "") {
             <?php if ($edit_product): ?>
 
                 <a
-                    href="products.php"
+                    href="products.php<?=
+                    $selected_category > 0
+                        ? '?category=' . $selected_category
+                        : '';
+                    ?>"
                     class="cancel-btn"
                 >
                     Cancel Edit
@@ -1687,19 +2707,45 @@ if ($search !== "") {
     </div>
 
 
-    <!-- =================================================
+    <!-- =========================
          PRODUCTS LIST
-    ================================================= -->
+    ========================= -->
 
     <div class="products-box">
 
 
         <div class="products-header">
 
+            <div>
 
-            <h2>
-                All Products
-            </h2>
+                <h2>
+                    <?php if ($selected_category > 0): ?>
+
+                        Category Products
+
+                    <?php else: ?>
+
+                        All Products
+
+                    <?php endif; ?>
+                </h2>
+
+
+                <?php if (
+                    $selected_category > 0 &&
+                    $selected_category_name !== ""
+                ): ?>
+
+                    <div class="category-title">
+
+                        Category:
+                        <?= e($selected_category_name) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+            </div>
 
 
             <form
@@ -1707,12 +2753,21 @@ if ($search !== "") {
                 class="search-form"
             >
 
+                <?php if ($selected_category > 0): ?>
+
+                    <input
+                        type="hidden"
+                        name="category"
+                        value="<?= $selected_category ?>"
+                    >
+
+                <?php endif; ?>
+
+
                 <input
                     type="text"
                     name="search"
-                    value="<?php
-                    echo htmlspecialchars($search);
-                    ?>"
+                    value="<?= e($search) ?>"
                     placeholder="Search product..."
                 >
 
@@ -1728,6 +2783,75 @@ if ($search !== "") {
 
         </div>
 
+
+        <!-- =========================
+             CATEGORY FILTER BUTTONS
+        ========================= -->
+
+        <div class="category-filter">
+
+            <a
+                href="products.php"
+                class="category-filter-btn <?=
+                    $selected_category === 0
+                        ? 'active'
+                        : '';
+                ?>"
+            >
+                All Products
+            </a>
+
+
+            <?php foreach (
+                $categories as $category
+            ): ?>
+
+                <?php
+                    $cat_id =
+                        (int)
+                        $category['category_id'];
+
+                    $cat_name =
+                        trim(
+                            $category['category_name']
+                            ?? ''
+                        );
+                ?>
+
+
+                <a
+                    href="products.php?category=<?= $cat_id ?>"
+                    class="category-filter-btn <?=
+                        $selected_category === $cat_id
+                            ? 'active'
+                            : '';
+                    ?>"
+                >
+
+                    <?= e($cat_name) ?>
+
+                </a>
+
+            <?php endforeach; ?>
+
+
+            <?php if ($selected_category > 0): ?>
+
+                <a
+                    href="products.php"
+                    class="clear-filter"
+                >
+                    Clear Filter
+                </a>
+
+            <?php endif; ?>
+
+        </div>
+
+
+        <!-- =========================
+             PRODUCTS TABLE
+        ========================= -->
 
         <?php if (
             $products &&
@@ -1782,10 +2906,11 @@ if ($search !== "") {
 
                                 <td>
 
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $product['product_id']
-                                    );
+                                    <?=
+                                    (int)
+                                    $product[
+                                        'product_id'
+                                    ];
                                     ?>
 
                                 </td>
@@ -1793,33 +2918,47 @@ if ($search !== "") {
 
                                 <td>
 
-
                                     <?php
+
+                                    $product_image =
+                                        trim(
+                                            $product[
+                                                'image'
+                                            ] ?? ''
+                                        );
+
 
                                     $image_path =
                                         "../uploads/products/" .
-                                        $product['image'];
-
-                                    if (
-                                        !empty(
-                                            $product['image']
-                                        ) &&
-                                        file_exists(
-                                            $image_path
-                                        )
-                                    ):
+                                        basename(
+                                            $product_image
+                                        );
 
                                     ?>
 
 
+                                    <?php if (
+                                        $product_image !== "" &&
+                                        is_file(
+                                            $image_path
+                                        )
+                                    ): ?>
+
+
                                         <img
-                                            src="<?php
-                                            echo htmlspecialchars(
+                                            src="<?=
+                                            e(
                                                 $image_path
                                             );
                                             ?>"
                                             class="product-img"
-                                            alt="Product"
+                                            alt="<?=
+                                            e(
+                                                $product[
+                                                    'product_name'
+                                                ]
+                                            );
+                                            ?>"
                                         >
 
 
@@ -1841,9 +2980,11 @@ if ($search !== "") {
 
                                     <strong>
 
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $product['product_name']
+                                        <?=
+                                        e(
+                                            $product[
+                                                'product_name'
+                                            ]
                                         );
                                         ?>
 
@@ -1854,9 +2995,12 @@ if ($search !== "") {
 
                                 <td>
 
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $product['category_id']
+                                    <?=
+                                    e(
+                                        $product[
+                                            'category_name'
+                                        ] ??
+                                        'Uncategorized'
                                     );
                                     ?>
 
@@ -1867,9 +3011,12 @@ if ($search !== "") {
 
                                     Rs.
 
-                                    <?php
-                                    echo number_format(
-                                        (float)$product['price'],
+                                    <?=
+                                    number_format(
+                                        (float)
+                                        $product[
+                                            'price'
+                                        ],
                                         2
                                     );
                                     ?>
@@ -1879,23 +3026,28 @@ if ($search !== "") {
 
                                 <td>
 
-
                                     <?php
 
                                     $stock =
-                                        intval(
+                                        max(
+                                            0,
+                                            (int)
                                             $product[
                                                 'stock_quantity'
                                             ]
                                         );
 
 
-                                    if ($stock <= 0) {
+                                    if (
+                                        $stock <= 0
+                                    ) {
 
                                         $stock_class =
                                             "out-stock";
 
-                                    } elseif ($stock <= 5) {
+                                    } elseif (
+                                        $stock <= 5
+                                    ) {
 
                                         $stock_class =
                                             "low-stock";
@@ -1910,26 +3062,29 @@ if ($search !== "") {
 
 
                                     <span
-                                        class="stock <?php
-                                        echo $stock_class;
+                                        class="stock <?=
+                                        e(
+                                            $stock_class
+                                        );
                                         ?>"
                                     >
 
-                                        <?php
-                                        echo $stock;
+                                        <?=
+                                        $stock;
                                         ?>
 
                                     </span>
-
 
                                 </td>
 
 
                                 <td>
 
-                                    <?php
-                                    echo htmlspecialchars(
-                                        $product['size']
+                                    <?=
+                                    e(
+                                        $product[
+                                            'size'
+                                        ] ?? ''
                                     );
                                     ?>
 
@@ -1940,8 +3095,16 @@ if ($search !== "") {
 
 
                                     <a
-                                        href="products.php?edit=<?php
-                                        echo $product['product_id'];
+                                        href="products.php?edit=<?=
+                                        (int)
+                                        $product[
+                                            'product_id'
+                                        ];
+                                        ?><?=
+                                        $selected_category > 0
+                                            ? '&category=' .
+                                                $selected_category
+                                            : '';
                                         ?>"
                                         class="edit-btn"
                                     >
@@ -1950,8 +3113,11 @@ if ($search !== "") {
 
 
                                     <a
-                                        href="products.php?delete=<?php
-                                        echo $product['product_id'];
+                                        href="products.php?delete=<?=
+                                        (int)
+                                        $product[
+                                            'product_id'
+                                        ];
                                         ?>"
                                         class="delete-btn"
                                         onclick="
@@ -1989,7 +3155,28 @@ if ($search !== "") {
 
                 <?php
 
-                if ($search !== "") {
+                if (
+                    $selected_category > 0 &&
+                    $selected_category_name !== ""
+                ) {
+
+                    if ($search !== "") {
+
+                        echo
+                            "No products found in " .
+                            e($selected_category_name) .
+                            " for your search.";
+
+                    } else {
+
+                        echo
+                            "No products found in " .
+                            e($selected_category_name) .
+                            ".";
+
+                    }
+
+                } elseif ($search !== "") {
 
                     echo
                         "No products found for your search.";

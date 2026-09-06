@@ -1,4 +1,4 @@
-```php
+
 <?php
 session_start();
 
@@ -879,4 +879,3 @@ $shipping_stmt->close();
 </body>
 
 </html>
-```

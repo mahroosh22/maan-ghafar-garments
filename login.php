@@ -1,58 +1,163 @@
-
 <?php
+
 session_start();
 
 require_once "config/database.php";
 
 $error = "";
 
+
+/* =========================================
+   CSRF TOKEN
+========================================= */
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
+/* =========================================
+   LOGIN
+========================================= */
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $posted_token = $_POST['csrf_token'] ?? '';
 
-    if ($email === '' || $password === '') {
+    if (
+        empty($posted_token) ||
+        !hash_equals($csrf_token, $posted_token)
+    ) {
 
-        $error = "Please fill all fields.";
+        $error = "Invalid security token. Please try again.";
 
     } else {
 
-        $stmt = $conn->prepare("
-            SELECT id, name, email, password, role
-            FROM users
-            WHERE email = ?
-            LIMIT 1
-        ");
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
 
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
+        /* =========================================
+           VALIDATION
+        ========================================= */
 
-        if (
-            $user &&
-            $user['role'] === 'customer' &&
-            password_verify($password, $user['password'])
-        ) {
+        if ($email === '' || $password === '') {
 
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role'] = $user['role'];
+            $error = "Please fill all fields.";
 
-            header("Location: index.php");
-            exit;
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+            $error = "Please enter a valid email address.";
 
         } else {
 
-            $error = "Invalid email or password.";
+            /* =========================================
+               GET CUSTOMER
+            ========================================= */
 
+            $stmt = $conn->prepare("
+                SELECT
+                    id,
+                    name,
+                    email,
+                    password,
+                    role
+                FROM users
+                WHERE email = ?
+                LIMIT 1
+            ");
+
+
+            if (!$stmt) {
+
+                $error = "Unable to process login.";
+
+            } else {
+
+                $stmt->bind_param(
+                    "s",
+                    $email
+                );
+
+                if (!$stmt->execute()) {
+
+                    $error = "Unable to process login.";
+
+                    $stmt->close();
+
+                } else {
+
+                    $result = $stmt->get_result();
+
+                    $user = $result->fetch_assoc();
+
+                    $stmt->close();
+
+
+                    /* =========================================
+                       VERIFY CUSTOMER
+                    ========================================= */
+
+                    if (
+                        $user &&
+                        ($user['role'] ?? '') === 'customer' &&
+                        password_verify(
+                            $password,
+                            $user['password']
+                        )
+                    ) {
+
+                        /*
+                            Regenerate session ID after
+                            successful authentication.
+                        */
+
+                        session_regenerate_id(true);
+
+
+                        $_SESSION['user_id'] =
+                            (int) $user['id'];
+
+                        $_SESSION['user_name'] =
+                            $user['name'];
+
+                        $_SESSION['user_email'] =
+                            $user['email'];
+
+                        $_SESSION['user_role'] =
+                            $user['role'];
+
+
+                        /*
+                            Generate a fresh CSRF token
+                            after login.
+                        */
+
+                        $_SESSION['csrf_token'] =
+                            bin2hex(random_bytes(32));
+
+
+                        header("Location: index.php");
+                        exit;
+
+                    } else {
+
+                        /*
+                            Generic error prevents revealing
+                            whether an email exists.
+                        */
+
+                        $error =
+                            "Invalid email or password.";
+                    }
+                }
+            }
         }
-
-        $stmt->close();
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -147,41 +252,71 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <h1>Customer Login</h1>
 
+
     <?php if ($error !== ''): ?>
 
         <p class="error">
-            <?php echo htmlspecialchars($error); ?>
+            <?php
+            echo htmlspecialchars(
+                $error,
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            ?>
         </p>
 
     <?php endif; ?>
 
-    <form method="POST" autocomplete="off">
 
-        <label>Email</label>
+    <form
+        method="POST"
+        autocomplete="off"
+    >
+
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?php echo htmlspecialchars(
+                $csrf_token,
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?>"
+        >
+
+
+        <label for="login_email">
+            Email
+        </label>
 
         <input
             type="email"
             name="email"
             id="login_email"
-            autocomplete="new-email"
+            autocomplete="email"
+            maxlength="150"
             required
         >
 
-        <label>Password</label>
+
+        <label for="login_password">
+            Password
+        </label>
 
         <input
             type="password"
             name="password"
             id="login_password"
-            autocomplete="new-password"
+            autocomplete="current-password"
             required
         >
+
 
         <button type="submit">
             Login
         </button>
 
     </form>
+
 
     <div class="register-link">
 

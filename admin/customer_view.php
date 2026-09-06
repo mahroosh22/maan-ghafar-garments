@@ -1,5 +1,5 @@
-
 <?php
+
 session_start();
 
 if (!isset($_SESSION['admin_id'])) {
@@ -9,9 +9,18 @@ if (!isset($_SESSION['admin_id'])) {
 
 require_once "../config/database.php";
 
-$customer_id = intval($_GET['id'] ?? 0);
 
-if ($customer_id <= 0) {
+/* =========================
+   CUSTOMER ID VALIDATION
+========================= */
+
+$customer_id = filter_input(
+    INPUT_GET,
+    'id',
+    FILTER_VALIDATE_INT
+);
+
+if (!$customer_id || $customer_id <= 0) {
     header("Location: customers.php");
     exit;
 }
@@ -22,14 +31,28 @@ if ($customer_id <= 0) {
 ========================= */
 
 $stmt = $conn->prepare("
-    SELECT id, name, email, phone, created_at
+    SELECT
+        id,
+        name,
+        email,
+        phone,
+        created_at
     FROM users
-    WHERE id = ? AND role = 'customer'
+    WHERE id = ?
+    AND role = 'customer'
     LIMIT 1
 ");
 
+if (!$stmt) {
+    die("Database error. Please try again.");
+}
+
 $stmt->bind_param("i", $customer_id);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    $stmt->close();
+    die("Unable to load customer information.");
+}
 
 $customer_result = $stmt->get_result();
 $customer = $customer_result->fetch_assoc();
@@ -63,8 +86,16 @@ $stmt = $conn->prepare("
     ORDER BY created_at DESC
 ");
 
+if (!$stmt) {
+    die("Database error while loading orders.");
+}
+
 $stmt->bind_param("i", $customer_id);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    $stmt->close();
+    die("Unable to load customer orders.");
+}
 
 $orders_result = $stmt->get_result();
 
@@ -86,15 +117,23 @@ $stmt = $conn->prepare("
     WHERE user_id = ?
 ");
 
+if (!$stmt) {
+    die("Database error while loading statistics.");
+}
+
 $stmt->bind_param("i", $customer_id);
-$stmt->execute();
+
+if (!$stmt->execute()) {
+    $stmt->close();
+    die("Unable to load customer statistics.");
+}
 
 $stats_result = $stmt->get_result();
 $stats = $stats_result->fetch_assoc();
 
 if ($stats) {
-    $total_orders = $stats['total_orders'];
-    $total_spent = $stats['total_spent'];
+    $total_orders = (int) $stats['total_orders'];
+    $total_spent = (float) $stats['total_spent'];
 }
 
 $stmt->close();
@@ -108,7 +147,10 @@ $stmt->close();
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>
         Customer View - Maan Ghafar Garments
@@ -616,7 +658,14 @@ $stmt->close();
                     </span>
 
                     <span class="info-value">
-                        #<?php echo htmlspecialchars($customer['id']); ?>
+                        #
+                        <?php
+                        echo htmlspecialchars(
+                            (string) $customer['id'],
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
                     </span>
 
                 </div>
@@ -629,7 +678,13 @@ $stmt->close();
                     </span>
 
                     <span class="info-value">
-                        <?php echo htmlspecialchars($customer['name']); ?>
+                        <?php
+                        echo htmlspecialchars(
+                            $customer['name'],
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
                     </span>
 
                 </div>
@@ -642,7 +697,13 @@ $stmt->close();
                     </span>
 
                     <span class="info-value">
-                        <?php echo htmlspecialchars($customer['email']); ?>
+                        <?php
+                        echo htmlspecialchars(
+                            $customer['email'],
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
                     </span>
 
                 </div>
@@ -657,9 +718,15 @@ $stmt->close();
                     <span class="info-value">
 
                         <?php
+
                         echo !empty($customer['phone'])
-                            ? htmlspecialchars($customer['phone'])
+                            ? htmlspecialchars(
+                                $customer['phone'],
+                                ENT_QUOTES,
+                                'UTF-8'
+                            )
                             : 'Not provided';
+
                         ?>
 
                     </span>
@@ -674,7 +741,13 @@ $stmt->close();
                     </span>
 
                     <span class="info-value">
-                        <?php echo htmlspecialchars($customer['created_at']); ?>
+                        <?php
+                        echo htmlspecialchars(
+                            $customer['created_at'],
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                        ?>
                     </span>
 
                 </div>
@@ -710,7 +783,13 @@ $stmt->close();
                 </h3>
 
                 <div class="stat-number">
-                    Rs. <?php echo number_format((float)$total_spent, 2); ?>
+                    Rs.
+                    <?php
+                    echo number_format(
+                        $total_spent,
+                        2
+                    );
+                    ?>
                 </div>
 
             </div>
@@ -775,16 +854,52 @@ $stmt->close();
 
                                 <?php
 
-                                $status = strtolower($order['status'] ?? 'pending');
+                                $status = strtolower(
+                                    trim(
+                                        $order['status'] ?? 'pending'
+                                    )
+                                );
 
-                                $status_class = 'status-pending';
+                                $allowed_statuses = [
+                                    'pending',
+                                    'processing',
+                                    'completed',
+                                    'cancelled'
+                                ];
 
-                                if ($status === 'processing') {
-                                    $status_class = 'status-processing';
-                                } elseif ($status === 'completed') {
-                                    $status_class = 'status-completed';
-                                } elseif ($status === 'cancelled') {
-                                    $status_class = 'status-cancelled';
+                                if (
+                                    !in_array(
+                                        $status,
+                                        $allowed_statuses,
+                                        true
+                                    )
+                                ) {
+                                    $status = 'pending';
+                                }
+
+                                $status_class =
+                                    'status-pending';
+
+                                if (
+                                    $status === 'processing'
+                                ) {
+
+                                    $status_class =
+                                        'status-processing';
+
+                                } elseif (
+                                    $status === 'completed'
+                                ) {
+
+                                    $status_class =
+                                        'status-completed';
+
+                                } elseif (
+                                    $status === 'cancelled'
+                                ) {
+
+                                    $status_class =
+                                        'status-cancelled';
                                 }
 
                                 ?>
@@ -796,7 +911,14 @@ $stmt->close();
                                     <td>
 
                                         <span class="order-id">
-                                            #<?php echo htmlspecialchars($order['order_id']); ?>
+                                            #
+                                            <?php
+                                            echo htmlspecialchars(
+                                                (string) $order['order_id'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            );
+                                            ?>
                                         </span>
 
                                     </td>
@@ -805,7 +927,13 @@ $stmt->close();
                                     <td>
 
                                         <span class="amount">
-                                            Rs. <?php echo number_format((float)$order['total_amount'], 2); ?>
+                                            Rs.
+                                            <?php
+                                            echo number_format(
+                                                (float) $order['total_amount'],
+                                                2
+                                            );
+                                            ?>
                                         </span>
 
                                     </td>
@@ -813,8 +941,16 @@ $stmt->close();
 
                                     <td>
 
-                                        <span class="status <?php echo $status_class; ?>">
-                                            <?php echo htmlspecialchars($status); ?>
+                                        <span
+                                            class="status <?php echo $status_class; ?>"
+                                        >
+                                            <?php
+                                            echo htmlspecialchars(
+                                                $status,
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            );
+                                            ?>
                                         </span>
 
                                     </td>
@@ -823,9 +959,17 @@ $stmt->close();
                                     <td>
 
                                         <?php
-                                        echo !empty($order['payment_method'])
-                                            ? htmlspecialchars($order['payment_method'])
+
+                                        echo !empty(
+                                            $order['payment_method']
+                                        )
+                                            ? htmlspecialchars(
+                                                $order['payment_method'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            )
                                             : 'Not specified';
+
                                         ?>
 
                                     </td>
@@ -833,7 +977,13 @@ $stmt->close();
 
                                     <td>
 
-                                        <?php echo htmlspecialchars($order['created_at']); ?>
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $order['created_at'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+                                        ?>
 
                                     </td>
 
@@ -841,7 +991,7 @@ $stmt->close();
                                     <td>
 
                                         <a
-                                            href="order_view.php?id=<?php echo $order['order_id']; ?>"
+                                            href="order_view.php?id=<?php echo urlencode((string) $order['order_id']); ?>"
                                             class="view-order"
                                         >
                                             View Order
@@ -877,7 +1027,6 @@ $stmt->close();
                     </p>
 
                 </div>
-
 
             <?php endif; ?>
 

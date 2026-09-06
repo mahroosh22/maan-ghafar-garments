@@ -1,0 +1,9 @@
+# Local XAMPP / database files
+config/database.php
+
+# PHP local/session files
+*.log
+
+# System files
+.DS_Store
+Thumbs.db

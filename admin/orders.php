@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -10,13 +11,33 @@ require_once "../config/database.php";
 
 
 /* =========================
+   CSRF TOKEN
+========================= */
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
+/* =========================
    UPDATE ORDER STATUS
 ========================= */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $order_id = $_POST['order_id'] ?? '';
-    $status = $_POST['status'] ?? '';
+    $posted_token = $_POST['csrf_token'] ?? '';
+
+    if (
+        empty($posted_token) ||
+        !hash_equals($csrf_token, $posted_token)
+    ) {
+        die("Invalid security token. Please go back and try again.");
+    }
+
+    $order_id = trim($_POST['order_id'] ?? '');
+    $status = trim($_POST['status'] ?? '');
 
     $allowed_statuses = [
         'pending',
@@ -26,17 +47,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     ];
 
     if (
-        !empty($order_id) &&
-        in_array($status, $allowed_statuses)
+        $order_id !== '' &&
+        in_array($status, $allowed_statuses, true)
     ) {
 
-        $stmt = $conn->prepare(
-            "UPDATE orders SET status = ? WHERE order_id = ?"
-        );
+        $stmt = $conn->prepare("
+            UPDATE orders
+            SET status = ?
+            WHERE order_id = ?
+        ");
 
-        $stmt->bind_param("ss", $status, $order_id);
-        $stmt->execute();
-        $stmt->close();
+        if ($stmt) {
+
+            $stmt->bind_param(
+                "ss",
+                $status,
+                $order_id
+            );
+
+            $stmt->execute();
+            $stmt->close();
+        }
     }
 
     header("Location: orders.php");
@@ -55,41 +86,68 @@ $completed_orders = 0;
 
 /* Total Orders */
 
-$result = $conn->query(
-    "SELECT COUNT(*) AS total FROM orders"
-);
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM orders
+");
 
 if ($result) {
+
     $row = $result->fetch_assoc();
-    $total_orders = $row['total'];
+
+    $total_orders = (int) $row['total'];
 }
 
 
 /* Pending Orders */
 
-$result = $conn->query(
-    "SELECT COUNT(*) AS total
-     FROM orders
-     WHERE status = 'pending'"
-);
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM orders
+    WHERE status = 'pending'
+");
 
 if ($result) {
+
     $row = $result->fetch_assoc();
-    $pending_orders = $row['total'];
+
+    $pending_orders = (int) $row['total'];
 }
 
 
 /* Completed Orders */
 
-$result = $conn->query(
-    "SELECT COUNT(*) AS total
-     FROM orders
-     WHERE status = 'completed'"
-);
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM orders
+    WHERE status = 'completed'
+");
 
 if ($result) {
+
     $row = $result->fetch_assoc();
-    $completed_orders = $row['total'];
+
+    $completed_orders = (int) $row['total'];
+}
+
+
+/* =========================
+   UNREAD MESSAGES
+========================= */
+
+$unread_messages = 0;
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM contact_messages
+    WHERE status = 'unread'
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $unread_messages = (int) $row['total'];
 }
 
 
@@ -109,7 +167,8 @@ $orders_result = $conn->query("
         u.name AS customer_name,
         u.phone AS customer_phone
     FROM orders o
-    LEFT JOIN users u ON o.user_id = u.id
+    LEFT JOIN users u
+        ON o.user_id = u.id
     ORDER BY o.created_at DESC
 ");
 
@@ -122,7 +181,10 @@ $orders_result = $conn->query("
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Orders - Maan Ghafar Garments</title>
 
@@ -178,14 +240,24 @@ $orders_result = $conn->query("
         }
 
 
+        .menu {
+            position: relative;
+            z-index: 10000;
+        }
+
+
         .menu a {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             text-decoration: none;
             color: #d1d5db;
             padding: 14px 16px;
             margin-bottom: 8px;
             border-radius: 8px;
             transition: 0.3s;
+            position: relative;
+            z-index: 10001;
         }
 
 
@@ -193,6 +265,27 @@ $orders_result = $conn->query("
         .menu a.active {
             background: #b8860b;
             color: #ffffff;
+        }
+
+
+        .menu-left {
+            display: flex;
+            align-items: center;
+        }
+
+
+        .menu-badge {
+            background: #dc2626;
+            color: #ffffff;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
         }
 
 
@@ -579,22 +672,67 @@ $orders_result = $conn->query("
         <nav class="menu">
 
             <a href="dashboard.php">
-                🏠 Dashboard
+
+                <span class="menu-left">
+                    🏠 Dashboard
+                </span>
+
             </a>
 
 
             <a href="products.php">
-                📦 Products
+
+                <span class="menu-left">
+                    📦 Products
+                </span>
+
+            </a>
+
+
+            <!-- CATEGORIES -->
+
+            <a href="categories.php">
+
+                <span class="menu-left">
+                    📂 Categories
+                </span>
+
             </a>
 
 
             <a href="orders.php" class="active">
-                🛒 Orders
+
+                <span class="menu-left">
+                    🛒 Orders
+                </span>
+
             </a>
 
 
             <a href="customers.php">
-                👥 Customers
+
+                <span class="menu-left">
+                    👥 Customers
+                </span>
+
+            </a>
+
+
+            <a href="messages.php">
+
+                <span class="menu-left">
+                    💬 Messages
+                </span>
+
+
+                <?php if ($unread_messages > 0): ?>
+
+                    <span class="menu-badge">
+                        <?php echo $unread_messages; ?>
+                    </span>
+
+                <?php endif; ?>
+
             </a>
 
         </nav>
@@ -762,7 +900,9 @@ $orders_result = $conn->query("
                                     <td>
 
                                         <?php echo htmlspecialchars(
-                                            $order['order_id']
+                                            $order['order_id'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
                                         ); ?>
 
                                     </td>
@@ -773,7 +913,9 @@ $orders_result = $conn->query("
                                     <td>
 
                                         <?php echo htmlspecialchars(
-                                            $order['customer_name'] ?? 'Guest'
+                                            $order['customer_name'] ?? 'Guest',
+                                            ENT_QUOTES,
+                                            'UTF-8'
                                         ); ?>
 
                                     </td>
@@ -784,7 +926,9 @@ $orders_result = $conn->query("
                                     <td>
 
                                         <?php echo htmlspecialchars(
-                                            $order['customer_phone'] ?? 'Not provided'
+                                            $order['customer_phone'] ?? 'Not provided',
+                                            ENT_QUOTES,
+                                            'UTF-8'
                                         ); ?>
 
                                     </td>
@@ -796,7 +940,9 @@ $orders_result = $conn->query("
 
                                         Rs.
                                         <?php echo htmlspecialchars(
-                                            $order['total_amount']
+                                            $order['total_amount'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
                                         ); ?>
 
                                     </td>
@@ -806,14 +952,35 @@ $orders_result = $conn->query("
 
                                     <td>
 
+                                        <?php
+
+                                        $display_status = strtolower(
+                                            trim($order['status'] ?? '')
+                                        );
+
+                                        $safe_status_class = in_array(
+                                            $display_status,
+                                            [
+                                                'pending',
+                                                'processing',
+                                                'completed',
+                                                'cancelled'
+                                            ],
+                                            true
+                                        )
+                                            ? $display_status
+                                            : 'pending';
+
+                                        ?>
+
                                         <span class="status-badge status-<?php
-                                            echo strtolower(
-                                                $order['status']
-                                            );
+                                            echo $safe_status_class;
                                         ?>">
 
                                             <?php echo htmlspecialchars(
-                                                $order['status']
+                                                $order['status'] ?? 'Unknown',
+                                                ENT_QUOTES,
+                                                'UTF-8'
                                             ); ?>
 
                                         </span>
@@ -826,7 +993,9 @@ $orders_result = $conn->query("
                                     <td>
 
                                         <?php echo htmlspecialchars(
-                                            $order['payment_method']
+                                            $order['payment_method'] ?? 'Not specified',
+                                            ENT_QUOTES,
+                                            'UTF-8'
                                         ); ?>
 
                                     </td>
@@ -837,7 +1006,9 @@ $orders_result = $conn->query("
                                     <td>
 
                                         <?php echo htmlspecialchars(
-                                            $order['created_at']
+                                            $order['created_at'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
                                         ); ?>
 
                                     </td>
@@ -862,11 +1033,25 @@ $orders_result = $conn->query("
                                             class="status-form"
                                         >
 
+
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="<?php echo htmlspecialchars(
+                                                    $csrf_token,
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ); ?>"
+                                            >
+
+
                                             <input
                                                 type="hidden"
                                                 name="order_id"
                                                 value="<?php echo htmlspecialchars(
-                                                    $order['order_id']
+                                                    $order['order_id'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
                                                 ); ?>"
                                             >
 

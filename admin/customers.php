@@ -10,186 +10,340 @@ require_once "../config/database.php";
 
 
 /* =========================
+   CSRF TOKEN
+========================= */
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+
+/* =========================
    DELETE CUSTOMER
 ========================= */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $customer_id = $_POST['customer_id'] ?? '';
+    $posted_token = $_POST['csrf_token'] ?? '';
 
-    if (!empty($customer_id)) {
-
-        $conn->begin_transaction();
-
-        try {
-
-            /* =========================
-               DELETE ORDER ITEMS
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM order_items
-                WHERE order_id IN (
-                    SELECT order_id
-                    FROM orders
-                    WHERE user_id = ?
-                )
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
+    if (
+        empty($posted_token) ||
+        !hash_equals($csrf_token, $posted_token)
+    ) {
+        die("Invalid security token. Please go back and try again.");
+    }
 
 
-            /* =========================
-               DELETE PAYMENTS
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM payments
-                WHERE order_id IN (
-                    SELECT order_id
-                    FROM orders
-                    WHERE user_id = ?
-                )
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
+    $customer_id = filter_var(
+        $_POST['customer_id'] ?? '',
+        FILTER_VALIDATE_INT
+    );
 
 
-            /* =========================
-               DELETE SHIPPING
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM shipping
-                WHERE order_id IN (
-                    SELECT order_id
-                    FROM orders
-                    WHERE user_id = ?
-                )
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
+    if (
+        $customer_id === false ||
+        $customer_id <= 0
+    ) {
+        header("Location: customers.php");
+        exit;
+    }
 
 
-            /* =========================
-               DELETE ORDERS
-            ========================= */
+    /* =========================
+       VERIFY CUSTOMER
+    ========================= */
 
-            $stmt = $conn->prepare("
-                DELETE FROM orders
+    $stmt = $conn->prepare("
+        SELECT id
+        FROM users
+        WHERE id = ?
+        AND role = 'customer'
+        LIMIT 1
+    ");
+
+    if (!$stmt) {
+        header("Location: customers.php");
+        exit;
+    }
+
+
+    $stmt->bind_param(
+        "i",
+        $customer_id
+    );
+
+    $stmt->execute();
+
+    $customer_result = $stmt->get_result();
+
+    $customer_exists = $customer_result->num_rows === 1;
+
+    $stmt->close();
+
+
+    if (!$customer_exists) {
+        header("Location: customers.php");
+        exit;
+    }
+
+
+    /* =========================
+       DELETE CUSTOMER DATA
+    ========================= */
+
+    $conn->begin_transaction();
+
+
+    try {
+
+        /* DELETE ORDER ITEMS */
+
+        $stmt = $conn->prepare("
+            DELETE FROM order_items
+            WHERE order_id IN (
+                SELECT order_id
+                FROM orders
                 WHERE user_id = ?
-            ");
+            )
+        ");
 
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            /* =========================
-               DELETE ADDRESSES
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM addresses
-                WHERE user_id = ?
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            /* =========================
-               DELETE CART
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM cart
-                WHERE user_id = ?
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            /* =========================
-               DELETE WISHLIST
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM wishlist
-                WHERE user_id = ?
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            /* =========================
-               DELETE REVIEWS
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM reviews
-                WHERE user_id = ?
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            /* =========================
-               DELETE CUSTOMER
-            ========================= */
-
-            $stmt = $conn->prepare("
-                DELETE FROM users
-                WHERE id = ? AND role = 'customer'
-            ");
-
-            $stmt->bind_param("i", $customer_id);
-            $stmt->execute();
-            $stmt->close();
-
-
-            /* =========================
-               SAVE ALL CHANGES
-            ========================= */
-
-            $conn->commit();
-
-            echo "<script>
-                alert('Customer and all related data deleted successfully.');
-                window.location.href = 'customers.php';
-            </script>";
-
-            exit;
-
-
-        } catch (Exception $e) {
-
-            /* =========================
-               UNDO EVERYTHING
-            ========================= */
-
-            $conn->rollback();
-
-            echo "<script>
-                alert('Customer could not be deleted. Please try again.');
-                window.location.href = 'customers.php';
-            </script>";
-
-            exit;
+        if (!$stmt) {
+            throw new Exception("Order items query failed.");
         }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Order items deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE PAYMENTS */
+
+        $stmt = $conn->prepare("
+            DELETE FROM payments
+            WHERE order_id IN (
+                SELECT order_id
+                FROM orders
+                WHERE user_id = ?
+            )
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Payments query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Payments deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE SHIPPING */
+
+        $stmt = $conn->prepare("
+            DELETE FROM shipping
+            WHERE order_id IN (
+                SELECT order_id
+                FROM orders
+                WHERE user_id = ?
+            )
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Shipping query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Shipping deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE ORDERS */
+
+        $stmt = $conn->prepare("
+            DELETE FROM orders
+            WHERE user_id = ?
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Orders query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Orders deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE ADDRESSES */
+
+        $stmt = $conn->prepare("
+            DELETE FROM addresses
+            WHERE user_id = ?
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Addresses query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Addresses deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE CART */
+
+        $stmt = $conn->prepare("
+            DELETE FROM cart
+            WHERE user_id = ?
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Cart query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Cart deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE WISHLIST */
+
+        $stmt = $conn->prepare("
+            DELETE FROM wishlist
+            WHERE user_id = ?
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Wishlist query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Wishlist deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE REVIEWS */
+
+        $stmt = $conn->prepare("
+            DELETE FROM reviews
+            WHERE user_id = ?
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Reviews query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Reviews deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* DELETE CUSTOMER */
+
+        $stmt = $conn->prepare("
+            DELETE FROM users
+            WHERE id = ?
+            AND role = 'customer'
+        ");
+
+        if (!$stmt) {
+            throw new Exception("Customer query failed.");
+        }
+
+        $stmt->bind_param(
+            "i",
+            $customer_id
+        );
+
+        if (!$stmt->execute()) {
+            throw new Exception("Customer deletion failed.");
+        }
+
+        $stmt->close();
+
+
+        /* SAVE ALL CHANGES */
+
+        $conn->commit();
+
+
+        echo "<script>
+            alert('Customer and all related data deleted successfully.');
+            window.location.href = 'customers.php';
+        </script>";
+
+        exit;
+
+
+    } catch (Exception $e) {
+
+        /* UNDO EVERYTHING */
+
+        $conn->rollback();
+
+
+        echo "<script>
+            alert('Customer could not be deleted. Please try again.');
+            window.location.href = 'customers.php';
+        </script>";
+
+        exit;
     }
 }
 
@@ -215,7 +369,7 @@ if ($result) {
 
     $row = $result->fetch_assoc();
 
-    $total_customers = $row['total'];
+    $total_customers = (int) $row['total'];
 }
 
 
@@ -237,7 +391,27 @@ if ($result) {
 
     $row = $result->fetch_assoc();
 
-    $new_customers = $row['total'];
+    $new_customers = (int) $row['total'];
+}
+
+
+/* =========================
+   UNREAD MESSAGES
+========================= */
+
+$unread_messages = 0;
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM contact_messages
+    WHERE status = 'unread'
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $unread_messages = (int) $row['total'];
 }
 
 
@@ -246,7 +420,12 @@ if ($result) {
 ========================= */
 
 $customers_result = $conn->query("
-    SELECT id, name, email, phone, created_at
+    SELECT
+        id,
+        name,
+        email,
+        phone,
+        created_at
     FROM users
     WHERE role = 'customer'
     ORDER BY created_at DESC
@@ -261,7 +440,10 @@ $customers_result = $conn->query("
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Customers - Maan Ghafar Garments</title>
 
@@ -318,7 +500,9 @@ $customers_result = $conn->query("
         }
 
         .menu a {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             text-decoration: none;
             color: #d1d5db;
             padding: 14px 16px;
@@ -333,6 +517,25 @@ $customers_result = $conn->query("
         .menu a.active {
             background: #b8860b;
             color: #ffffff;
+        }
+
+        .menu-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-badge {
+            background: #dc2626;
+            color: #ffffff;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
         }
 
         .logout {
@@ -646,22 +849,70 @@ $customers_result = $conn->query("
         <nav class="menu">
 
             <a href="dashboard.php">
-                🏠 Dashboard
+
+                <span class="menu-left">
+                    🏠 Dashboard
+                </span>
+
             </a>
+
 
             <a href="products.php">
-                📦 Products
+
+                <span class="menu-left">
+                    📦 Products
+                </span>
+
             </a>
+
+
+            <!-- CATEGORIES -->
+
+            <a href="categories.php">
+
+                <span class="menu-left">
+                    🏷️ Categories
+                </span>
+
+            </a>
+
 
             <a href="orders.php">
-                🛒 Orders
+
+                <span class="menu-left">
+                    🛒 Orders
+                </span>
+
             </a>
 
+
             <a href="customers.php" class="active">
-                👥 Customers
+
+                <span class="menu-left">
+                    👥 Customers
+                </span>
+
+            </a>
+
+
+            <a href="messages.php">
+
+                <span class="menu-left">
+                    💬 Messages
+                </span>
+
+                <?php if ($unread_messages > 0): ?>
+
+                    <span class="menu-badge">
+                        <?php echo $unread_messages; ?>
+                    </span>
+
+                <?php endif; ?>
+
             </a>
 
         </nav>
+
 
         <div class="logout">
 
@@ -800,7 +1051,14 @@ $customers_result = $conn->query("
                                     <td>
 
                                         <span class="customer-id">
-                                            #<?php echo htmlspecialchars($customer['id']); ?>
+
+                                            #
+                                            <?php echo htmlspecialchars(
+                                                $customer['id'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ); ?>
+
                                         </span>
 
                                     </td>
@@ -809,14 +1067,26 @@ $customers_result = $conn->query("
                                     <td>
 
                                         <span class="customer-name">
-                                            <?php echo htmlspecialchars($customer['name']); ?>
+
+                                            <?php echo htmlspecialchars(
+                                                $customer['name'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ); ?>
+
                                         </span>
 
                                     </td>
 
 
                                     <td>
-                                        <?php echo htmlspecialchars($customer['email']); ?>
+
+                                        <?php echo htmlspecialchars(
+                                            $customer['email'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        ); ?>
+
                                     </td>
 
 
@@ -825,7 +1095,13 @@ $customers_result = $conn->query("
                                         <?php
 
                                         echo !empty($customer['phone'])
-                                            ? htmlspecialchars($customer['phone'])
+
+                                            ? htmlspecialchars(
+                                                $customer['phone'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            )
+
                                             : 'Not provided';
 
                                         ?>
@@ -834,14 +1110,21 @@ $customers_result = $conn->query("
 
 
                                     <td>
-                                        <?php echo htmlspecialchars($customer['created_at']); ?>
+
+                                        <?php echo htmlspecialchars(
+                                            $customer['created_at'],
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        ); ?>
+
                                     </td>
 
 
                                     <td>
 
+
                                         <a
-                                            href="customer_view.php?id=<?php echo $customer['id']; ?>"
+                                            href="customer_view.php?id=<?php echo urlencode($customer['id']); ?>"
                                             class="view-btn"
                                         >
                                             View
@@ -854,17 +1137,33 @@ $customers_result = $conn->query("
                                             style="display:inline;"
                                         >
 
+
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="<?php echo htmlspecialchars(
+                                                    $csrf_token,
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ); ?>"
+                                            >
+
+
                                             <input
                                                 type="hidden"
                                                 name="customer_id"
-                                                value="<?php echo $customer['id']; ?>"
+                                                value="<?php echo htmlspecialchars(
+                                                    $customer['id'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ); ?>"
                                             >
 
 
                                             <button
                                                 type="submit"
                                                 class="delete-btn"
-                                                onclick="return confirm('WARNING: This will delete the customer and all their orders and related data. Are you sure?');"
+                                                onclick="return confirm('WARNING: This will permanently delete the customer and all their orders and related data. Are you sure?');"
                                             >
                                                 Delete
                                             </button>

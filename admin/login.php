@@ -1,54 +1,163 @@
-
 <?php
+
 session_start();
+
 require_once "../config/database.php";
 
 $error = "";
 
+
+/* =========================
+   ADMIN LOGIN
+========================= */
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $email = trim($_POST['email'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND role = 'admin' LIMIT 1");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
 
-    $result = $stmt->get_result();
+    /* =========================
+       VALIDATION
+    ========================= */
 
-    if ($result->num_rows === 1) {
+    if ($email === '' || $password === '') {
 
-        $admin = $result->fetch_assoc();
+        $error = "Please enter your email and password.";
 
-        if (hash('sha256', $password) === $admin['password']) {
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-            $_SESSION['admin_id'] = $admin['id'];
-            $_SESSION['admin_name'] = $admin['name'];
-
-            header("Location: dashboard.php");
-            exit;
-
-        } else {
-            $error = "Invalid password.";
-        }
+        $error = "Please enter a valid email address.";
 
     } else {
-        $error = "Admin account not found.";
+
+
+        /* =========================
+           FIND ADMIN
+        ========================= */
+
+        $stmt = $conn->prepare("
+            SELECT
+                id,
+                name,
+                email,
+                password,
+                role
+            FROM users
+            WHERE email = ?
+            AND role = 'admin'
+            LIMIT 1
+        ");
+
+        if (!$stmt) {
+
+            $error = "Something went wrong. Please try again.";
+
+        } else {
+
+            $stmt->bind_param("s", $email);
+
+            if (!$stmt->execute()) {
+
+                $error = "Something went wrong. Please try again.";
+
+            } else {
+
+                $result = $stmt->get_result();
+
+
+                if ($result->num_rows === 1) {
+
+                    $admin = $result->fetch_assoc();
+
+
+                    /* =========================
+                       PASSWORD CHECK
+                    ========================= */
+
+                    $hashed_password = hash(
+                        'sha256',
+                        $password
+                    );
+
+
+                    if (
+                        hash_equals(
+                            (string) $admin['password'],
+                            $hashed_password
+                        )
+                    ) {
+
+
+                        /* =========================
+                           REGENERATE SESSION
+                        ========================= */
+
+                        session_regenerate_id(true);
+
+
+                        $_SESSION['admin_id'] =
+                            (int) $admin['id'];
+
+                        $_SESSION['admin_name'] =
+                            $admin['name'];
+
+                        $_SESSION['admin_email'] =
+                            $admin['email'];
+
+                        $_SESSION['admin_role'] =
+                            'admin';
+
+
+                        header(
+                            "Location: dashboard.php"
+                        );
+
+                        exit;
+
+                    } else {
+
+                        $error =
+                            "Invalid email or password.";
+                    }
+
+                } else {
+
+                    $error =
+                        "Invalid email or password.";
+                }
+            }
+
+            $stmt->close();
+        }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Admin Login - Maan Ghafar Garments</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <title>
+        Admin Login - Maan Ghafar Garments
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="../assets/css/style.css"
+    >
 
     <style>
+
         * {
             margin: 0;
             padding: 0;
@@ -58,7 +167,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         body {
             min-height: 100vh;
             font-family: Arial, Helvetica, sans-serif;
-            background: linear-gradient(135deg, #111827, #1f2937);
+            background: linear-gradient(
+                135deg,
+                #111827,
+                #1f2937
+            );
             display: flex;
             align-items: center;
             justify-content: center;
@@ -76,7 +189,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             background: #ffffff;
             padding: 45px 38px;
             border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.30);
+            box-shadow:
+                0 20px 50px
+                rgba(0, 0, 0, 0.30);
         }
 
         .brand-name {
@@ -128,7 +243,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .login-box input:focus {
             border-color: #b8860b;
             background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.12);
+            box-shadow:
+                0 0 0 3px
+                rgba(184, 134, 11, 0.12);
         }
 
         .login-box button {
@@ -185,74 +302,127 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             .brand-name {
                 font-size: 13px;
             }
+
         }
+
     </style>
+
 </head>
+
 
 <body>
 
+
 <section class="login-section">
 
+
     <div class="login-box">
+
 
         <div class="brand-name">
             MAAN GHAFAR GARMENTS
         </div>
 
-        <h2>Admin Login</h2>
+
+        <h2>
+            Admin Login
+        </h2>
+
 
         <p class="login-subtitle">
             Login to access your admin panel
         </p>
 
-        <?php if ($error != ""): ?>
+
+        <?php if ($error !== ""): ?>
+
             <div class="error-message">
-                <?php echo htmlspecialchars($error); ?>
+
+                <?php
+                echo htmlspecialchars(
+                    $error,
+                    ENT_QUOTES,
+                    'UTF-8'
+                );
+                ?>
+
             </div>
+
         <?php endif; ?>
 
-        <form method="POST" action="" autocomplete="off">
+
+        <form
+            method="POST"
+            action=""
+            autocomplete="off"
+        >
+
 
             <div class="input-group">
-                <label for="email">Admin Email</label>
+
+                <label for="email">
+                    Admin Email
+                </label>
+
 
                 <input
                     type="email"
                     id="email"
                     name="email"
                     placeholder="Enter your email"
-                    autocomplete="new-email"
+                    autocomplete="username"
+                    value="<?php
+                        echo htmlspecialchars(
+                            $email ?? '',
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+                    ?>"
                     required
                 >
+
             </div>
 
+
             <div class="input-group">
-                <label for="password">Password</label>
+
+                <label for="password">
+                    Password
+                </label>
+
 
                 <input
                     type="password"
                     id="password"
                     name="password"
                     placeholder="Enter your password"
-                    autocomplete="new-password"
+                    autocomplete="current-password"
                     required
                 >
+
             </div>
+
 
             <button type="submit">
                 Login to Admin Panel
             </button>
 
+
         </form>
 
+
         <div class="login-footer">
-            © 2026 Maan Ghafar Garments
+            © <?php echo date("Y"); ?>
+            Maan Ghafar Garments
         </div>
+
 
     </div>
 
+
 </section>
 
-</body>
-</html>
 
+</body>
+
+</html>
