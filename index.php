@@ -116,7 +116,7 @@ if ($stmt) {
     content="width=device-width, initial-scale=1.0"
 >
 
-<title>Maan Ghafar Garments | Ladies Fashion</title>
+<title>QAMROSH | Men's & Women's Fashion</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
 
@@ -835,7 +835,7 @@ if ($stmt) {
 
 <div class="logo">
 
-    Maan Ghafar Garments
+    QAMROSH
 
 </div>
 
@@ -962,7 +962,7 @@ if ($stmt) {
 
     <span class="hero-badge">
 
-        Ladies Fashion Collection
+        Men's & Women's Fashion Collection
 
     </span>
 
@@ -977,8 +977,8 @@ if ($stmt) {
 
     <p>
 
-        Discover elegant ladies garments,
-        beautiful designs and quality fashion
+        Discover elegant men's and women's fashion,
+        beautiful designs and quality clothing
         made for every occasion.
 
     </p>
@@ -1041,7 +1041,7 @@ if ($stmt) {
 
     <p>
 
-        Stylish ladies garments for every occasion.
+        Stylish men's and women's fashion for every occasion.
 
     </p>
 
@@ -1125,9 +1125,8 @@ if ($stmt) {
 
 <p class="category-subtitle">
 
-    Explore our collection of stylish
-    ladies garments and find a look
-    that matches your personality.
+    Explore our collection of stylish men's and women's
+    fashion and find a look that matches your style.
 
 </p>
 
@@ -1260,17 +1259,16 @@ if ($stmt) {
 
         <h2>
 
-            Maan Ghafar Garments
+            QAMROSH
 
         </h2>
 
 
         <p>
 
-            Your online destination for
-            stylish and elegant ladies garments.
-            Discover beautiful designs and
-            shop your favorite outfits with ease.
+            Your online destination for stylish and elegant
+            men's and women's fashion. Discover beautiful
+            designs and shop your favorite outfits with ease.
 
         </p>
 
@@ -1526,7 +1524,7 @@ if ($stmt) {
 
     © <?php echo date("Y"); ?>
 
-    Maan Ghafar Garments.
+    QAMROSH.
 
     All Rights Reserved.
 
