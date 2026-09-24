@@ -210,7 +210,7 @@ $total_quantity = 0;
 
     <title>
         Order #<?php echo e($order_id); ?> -
-        Maan Ghafar Garments
+        QAMROSH
     </title>
 
 
@@ -896,7 +896,7 @@ $total_quantity = 0;
 <header>
 
     <a href="../index.php" class="logo">
-        Maan Ghafar <span>Garments</span>
+        QAMROSH
     </a>
 
 
@@ -1320,7 +1320,7 @@ $total_quantity = 0;
         <div class="footer-column">
 
             <div class="footer-brand">
-                Maan Ghafar <span>Garments</span>
+                QAMROSH
             </div>
 
             <p>
@@ -1425,7 +1425,7 @@ $total_quantity = 0;
                     Email:
                 </strong><br>
 
-                support@maanghafar.com
+                qamrosh@gmail.com
 
             </div>
 
@@ -1462,7 +1462,7 @@ $total_quantity = 0;
         © <?php echo date("Y"); ?>
 
         <span>
-            Maan Ghafar Garments
+            QAMROSH
         </span>
 
         — All Rights Reserved.
