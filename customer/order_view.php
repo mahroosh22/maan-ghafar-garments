@@ -234,7 +234,7 @@ foreach ($items as $item) {
     >
 
     <title>
-        Order Details - Maan Ghafar Garments
+        Order Details - QAMROSH
     </title>
 
 
@@ -841,7 +841,7 @@ foreach ($items as $item) {
         href="../index.php"
         class="logo"
     >
-        MAAN GHAFAR GARMENTS
+        QAMROSH
     </a>
 
 
@@ -1477,7 +1477,7 @@ foreach ($items as $item) {
         <div>
 
             <h3>
-                Maan Ghafar Garments
+                QAMROSH
             </h3>
 
 
@@ -1587,7 +1587,7 @@ foreach ($items as $item) {
 
 
             <p>
-                📧 info@maanghafar.com
+                📧 qamrosh@gmail.com
             </p>
 
 
@@ -1610,7 +1610,7 @@ foreach ($items as $item) {
 
         © <?php echo date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
