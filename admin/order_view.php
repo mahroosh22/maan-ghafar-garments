@@ -431,7 +431,7 @@ $shipping_stmt->close();
 
 <div class="sidebar">
 
-    <h2>Maan Ghafar</h2>
+    <h2>QAMROSH</h2>
 
     <a href="dashboard.php">Dashboard</a>
 
