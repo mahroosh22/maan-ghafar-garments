@@ -146,7 +146,7 @@ $result = $stmt->get_result();
     >
 
     <title>
-        My Orders - Maan Ghafar Garments
+        My Orders - QAMROSH
     </title>
 
 
@@ -868,7 +868,7 @@ $result = $stmt->get_result();
         href="../index.php"
         class="logo"
     >
-        Maan Ghafar <span>Garments</span>
+        QAMROSH
     </a>
 
 
@@ -1389,10 +1389,7 @@ $result = $stmt->get_result();
 
             <div class="footer-brand">
 
-                Maan Ghafar
-                <span>
-                    Garments
-                </span>
+                QAMROSH
 
             </div>
 
@@ -1511,7 +1508,7 @@ $result = $stmt->get_result();
 
                 <br>
 
-                support@maanghafar.com
+                qamrosh@gmail.com
 
             </div>
 
@@ -1552,7 +1549,7 @@ $result = $stmt->get_result();
         © <?php echo date("Y"); ?>
 
         <span>
-            Maan Ghafar Garments
+            QAMROSH
         </span>
 
         — All Rights Reserved.
