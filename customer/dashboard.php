@@ -1,4 +1,3 @@
-
 <?php
 
 session_start();
@@ -54,7 +53,7 @@ if (!$user) {
     >
 
     <title>
-        My Account - Maan Ghafar Garments
+        My Account - QAMROSH
     </title>
 
     <style>
@@ -267,7 +266,7 @@ if (!$user) {
 <div class="navbar">
 
     <h2>
-        Maan Ghafar Garments
+        QAMROSH
     </h2>
 
     <div class="nav-links">
@@ -315,7 +314,7 @@ if (!$user) {
         </h1>
 
         <p>
-            Welcome to your Maan Ghafar Garments customer account.
+            Welcome to your QAMROSH customer account.
         </p>
 
     </div>
