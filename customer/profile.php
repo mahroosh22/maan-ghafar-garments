@@ -320,7 +320,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     >
 
     <title>
-        My Profile - Maan Ghafar Garments
+        My Profile - QAMROSH
     </title>
 
     <style>
@@ -785,7 +785,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         href="../index.php"
         class="brand"
     >
-        Maan Ghafar Garments
+        QAMROSH
     </a>
 
 
@@ -1083,7 +1083,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <div>
 
             <h3>
-                Maan Ghafar Garments
+                QAMROSH
             </h3>
 
             <p>
@@ -1163,7 +1163,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </h4>
 
             <p>
-                📧 support@maanghafar.com
+                📧 qamrosh@gmail.com
             </p>
 
             <p>
@@ -1185,7 +1185,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         © <?php echo date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
         All Rights Reserved.
 
     </div>
