@@ -122,7 +122,7 @@ if (isset($_SESSION['user_id'])) {
 >
 
 <title>
-    Shopping Cart - Maan Ghafar Garments
+    Shopping Cart - QAMROSH
 </title>
 
 <link
@@ -542,7 +542,7 @@ if (isset($_SESSION['user_id'])) {
 <header class="header">
 
     <div class="logo">
-        Maan Ghafar Garments
+        QAMROSH
     </div>
 
     <nav class="navbar">
@@ -1110,7 +1110,7 @@ if (isset($_SESSION['user_id'])) {
         <div class="footer-column footer-brand">
 
             <h2>
-                Maan Ghafar Garments
+                QAMROSH
             </h2>
 
             <p>
@@ -1289,7 +1289,7 @@ if (isset($_SESSION['user_id'])) {
 
         © <?php echo date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
