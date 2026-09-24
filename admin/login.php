@@ -148,7 +148,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     >
 
     <title>
-        Admin Login - Maan Ghafar Garments
+        Admin Login - QAMROSH
     </title>
 
     <link
@@ -320,7 +320,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
         <div class="brand-name">
-            MAAN GHAFAR GARMENTS
+            QAMROSH
         </div>
 
 
@@ -413,7 +413,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <div class="login-footer">
             © <?php echo date("Y"); ?>
-            Maan Ghafar Garments
+            QAMROSH
         </div>
 
 
