@@ -375,7 +375,7 @@ if ($user_email !== "") {
     >
 
     <title>
-        Contact Us - Maan Ghafar Garments
+        Contact Us - QAMROSH
     </title>
 
     <link
@@ -1107,7 +1107,7 @@ if ($user_email !== "") {
 <header class="header">
 
     <div class="logo">
-        Maan Ghafar Garments
+        QAMROSH
     </div>
 
 
@@ -1250,7 +1250,7 @@ if ($user_email !== "") {
             shopping experience.
 
             Feel free to contact
-            Maan Ghafar Garments anytime.
+            QAMROSH anytime.
 
         </p>
 
@@ -1262,7 +1262,7 @@ if ($user_email !== "") {
             </strong>
 
             <span>
-                info@maanghafargarments.com
+                qamrosh@gmail.com
             </span>
 
         </div>
@@ -1461,7 +1461,7 @@ if ($user_email !== "") {
         <p class="messages-intro">
 
             Here you can see the messages you have sent
-            and any replies from Maan Ghafar Garments.
+            and any replies from QAMROSH.
 
         </p>
 
@@ -1660,7 +1660,7 @@ if ($user_email !== "") {
         <div class="footer-column footer-brand">
 
             <h2>
-                Maan Ghafar Garments
+                QAMROSH
             </h2>
 
 
@@ -1854,7 +1854,7 @@ if ($user_email !== "") {
 
         © <?= date("Y") ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
