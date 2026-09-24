@@ -224,7 +224,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     >
 
     <title>
-        Register - Maan Ghafar Garments
+        Register - QAMROSH
     </title>
 
     <style>
