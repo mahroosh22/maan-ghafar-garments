@@ -172,7 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Login - Maan Ghafar Garments</title>
+    <title>Login - QAMROSH</title>
 
     <style>
 
