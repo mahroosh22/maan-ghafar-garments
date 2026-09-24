@@ -1361,7 +1361,7 @@ if (
     >
 
     <title>
-        Products - Maan Ghafar Garments
+        Products - QAMROSH
     </title>
 
 
@@ -2230,8 +2230,7 @@ if (
 
     <div class="logo">
 
-        MAAN GHAFAR<br>
-        GARMENTS
+        QAMROSH
 
     </div>
 
@@ -2340,7 +2339,7 @@ if (
         </h1>
 
         <p>
-            Manage Maan Ghafar Garments products
+            Manage QAMROSH products
         </p>
 
     </div>
