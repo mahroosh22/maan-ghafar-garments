@@ -153,7 +153,7 @@ $stmt->close();
     >
 
     <title>
-        Customer View - Maan Ghafar Garments
+        Customer View - QAMROSH
     </title>
 
     <style>
@@ -577,8 +577,7 @@ $stmt->close();
     <aside class="sidebar">
 
         <div class="logo">
-            MAAN GHAFAR<br>
-            GARMENTS
+            QAMROSH
         </div>
 
         <div class="admin-title">
