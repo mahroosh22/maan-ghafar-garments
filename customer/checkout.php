@@ -1,4 +1,3 @@
-
 <?php
 
 session_start();
@@ -271,7 +270,7 @@ if (empty($cart_products)) {
     >
 
     <title>
-        Checkout - Maan Ghafar Garments
+        Checkout - QAMROSH
     </title>
 
     <link
@@ -654,7 +653,7 @@ if (empty($cart_products)) {
 <header class="header">
 
     <div class="logo">
-        Maan Ghafar Garments
+        QAMROSH
     </div>
 
 
@@ -1230,7 +1229,7 @@ if (empty($cart_products)) {
         <div class="footer-column footer-brand">
 
             <h2>
-                Maan Ghafar Garments
+                QAMROSH
             </h2>
 
             <p>
@@ -1385,7 +1384,7 @@ if (empty($cart_products)) {
 
         © <?php echo date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
