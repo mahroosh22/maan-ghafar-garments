@@ -272,7 +272,7 @@ if ($category > 0) {
     >
 
     <title>
-        Products | Maan Ghafar Garments
+        Products | QAMROSH
     </title>
 
     <link
@@ -800,7 +800,7 @@ if ($category > 0) {
 <header class="header">
 
     <div class="logo">
-        Maan Ghafar Garments
+        QAMROSH
     </div>
 
 
@@ -1160,7 +1160,7 @@ if ($category > 0) {
         <div class="footer-column footer-brand">
 
             <h2>
-                Maan Ghafar Garments
+                QAMROSH
             </h2>
 
 
@@ -1348,7 +1348,7 @@ if ($category > 0) {
 
         © <?= date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
