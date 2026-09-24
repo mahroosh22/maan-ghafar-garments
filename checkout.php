@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -113,7 +112,7 @@ if (empty($cart_products)) {
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Checkout - Maan Ghafar Garments</title>
+<title>Checkout - QAMROSH</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
 
@@ -459,7 +458,7 @@ if (empty($cart_products)) {
 <header class="header">
 
     <div class="logo">
-        Maan Ghafar Garments
+        QAMROSH
     </div>
 
     <nav class="navbar">
@@ -812,7 +811,7 @@ if (empty($cart_products)) {
 
         <div class="footer-column">
 
-            <h3>Maan Ghafar Garments</h3>
+            <h3>QAMROSH</h3>
 
             <p>
                 Discover elegant and stylish ladies garments
@@ -854,7 +853,7 @@ if (empty($cart_products)) {
 
             <h3>Contact & Support</h3>
 
-            <p>📧 support@maanghafar.com</p>
+            <p>📧 qamrosh@gmail.com</p>
 
             <p>📞 Customer Support</p>
 
@@ -872,7 +871,7 @@ if (empty($cart_products)) {
 
             © <?php echo date("Y"); ?>
 
-            Maan Ghafar Garments.
+            QAMROSH.
 
             All Rights Reserved.
 
