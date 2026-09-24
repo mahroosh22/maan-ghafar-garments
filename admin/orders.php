@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -186,7 +185,7 @@ $orders_result = $conn->query("
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Orders - Maan Ghafar Garments</title>
+    <title>Orders - QAMROSH</title>
 
 
     <style>
@@ -659,8 +658,7 @@ $orders_result = $conn->query("
     <aside class="sidebar">
 
         <div class="logo">
-            MAAN GHAFAR<br>
-            GARMENTS
+            QAMROSH
         </div>
 
 
