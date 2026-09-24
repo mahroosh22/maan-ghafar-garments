@@ -445,7 +445,7 @@ $customers_result = $conn->query("
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Customers - Maan Ghafar Garments</title>
+    <title>Customers - QAMROSH</title>
 
     <style>
 
@@ -838,8 +838,7 @@ $customers_result = $conn->query("
     <aside class="sidebar">
 
         <div class="logo">
-            MAAN GHAFAR<br>
-            GARMENTS
+            QAMROSH
         </div>
 
         <div class="admin-title">
