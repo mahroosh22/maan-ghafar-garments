@@ -205,7 +205,7 @@ if ($product_image !== '') {
 
     <title>
         <?php echo e($product['product_name']); ?>
-        - Maan Ghafar Garments
+        - QAMROSH
     </title>
 
     <link
@@ -339,7 +339,7 @@ if ($product_image !== '') {
 <header class="header">
 
     <div class="logo">
-        Maan Ghafar Garments
+        QAMROSH
     </div>
 
 
@@ -475,7 +475,7 @@ if ($product_image !== '') {
 
 
             <span class="product-label">
-                Maan Ghafar Collection
+                QAMROSH Collection
             </span>
 
 
@@ -700,7 +700,7 @@ if ($product_image !== '') {
         <div class="footer-column footer-brand">
 
             <h2>
-                Maan Ghafar Garments
+                QAMROSH
             </h2>
 
 
@@ -898,7 +898,7 @@ if ($product_image !== '') {
 
         © <?php echo date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
