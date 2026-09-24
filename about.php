@@ -86,7 +86,7 @@ if (isset($_SESSION['user_id'])) {
     >
 
     <title>
-        About Us - Maan Ghafar Garments
+        About Us - QAMROSH
     </title>
 
     <link
@@ -657,7 +657,7 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="logo">
 
-        Maan Ghafar Garments
+        QAMROSH
 
     </div>
 
@@ -772,7 +772,7 @@ if (isset($_SESSION['user_id'])) {
         About
 
         <span>
-            Maan Ghafar Garments
+            QAMROSH
         </span>
 
     </h1>
@@ -815,7 +815,7 @@ if (isset($_SESSION['user_id'])) {
 
             <p>
 
-                Welcome to Maan Ghafar Garments,
+                Welcome to QAMROSH,
                 your trusted destination for beautiful
                 ladies stitched garments.
 
@@ -1027,7 +1027,7 @@ if (isset($_SESSION['user_id'])) {
         <div class="footer-column footer-brand">
 
             <h2>
-                Maan Ghafar Garments
+                QAMROSH
             </h2>
 
 
@@ -1209,7 +1209,7 @@ if (isset($_SESSION['user_id'])) {
 
         © <?php echo date("Y"); ?>
 
-        Maan Ghafar Garments.
+        QAMROSH.
 
         All Rights Reserved.
 
