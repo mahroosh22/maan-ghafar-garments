@@ -184,7 +184,6 @@ $recent_messages = $conn->query("
 
 <head>
 
-```
 <meta charset="UTF-8">
 
 <meta
@@ -193,7 +192,7 @@ $recent_messages = $conn->query("
 >
 
 <title>
-    Admin Dashboard - Maan Ghafar Garments
+    Admin Dashboard - QAMROSH
 </title>
 
 
@@ -1371,7 +1370,6 @@ $recent_messages = $conn->query("
     }
 
 </style>
-```
 
 </head>
 
@@ -1383,11 +1381,9 @@ $recent_messages = $conn->query("
 
 <aside class="sidebar">
 
-```
 <div class="logo">
 
-    MAAN GHAFAR<br>
-    GARMENTS
+    QAMROSH
 
 </div>
 
@@ -1479,7 +1475,6 @@ $recent_messages = $conn->query("
     </a>
 
 </div>
-```
 
 </aside>
 
@@ -1489,7 +1484,6 @@ $recent_messages = $conn->query("
 
 <main class="main-content">
 
-```
 <div class="topbar">
 
     <div>
@@ -1766,7 +1760,7 @@ $recent_messages = $conn->query("
 
 
     <h2>
-        Maan Ghafar Garments
+        QAMROSH
     </h2>
 
 
@@ -1941,9 +1935,7 @@ $recent_messages = $conn->query("
                                 <td>
 
                                     <span
-                                        class="status-badge status-<?=
-                                        $order_status
-                                        ?>"
+                                        class="status-badge status-<?= $order_status ?>"
                                     >
 
                                         <?= htmlspecialchars(
@@ -2294,7 +2286,6 @@ $recent_messages = $conn->query("
 
 
 </div>
-```
 
 </main>
 
